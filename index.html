@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>B-Tree Visualizer - Order (M) Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Data Structure Navigation Bar -->
+    <nav class="ds-nav-bar" id="dsNavBar" aria-label="Data Structure Suite">
+      <div class="ds-nav-items">
+        <button class="ds-tab-btn active" data-ds="btree" title="B-Tree (Order M / 2-3-4 Tree Visualizer)">
+          <span class="ds-icon">🌳</span>
+          <span class="ds-label">B-Tree</span>
+        </button>
+        <button class="ds-tab-btn" data-ds="bplus" title="B+ Tree with Sequential Leaf Chaining">
+          <span class="ds-icon">📑</span>
+          <span class="ds-label">B+ Tree</span>
+        </button>
+        <button class="ds-tab-btn" data-ds="avl" title="AVL Tree (Self-Balancing BST with Rotations)">
+          <span class="ds-icon">⚖️</span>
+          <span class="ds-label">AVL Tree</span>
+        </button>
+        <button class="ds-tab-btn" data-ds="redblack" title="Red-Black Tree (Self-Balancing BST with Color Properties)">
+          <span class="ds-icon">🔴</span>
+          <span class="ds-label">Red-Black</span>
+        </button>
+        <button class="ds-tab-btn" data-ds="splay" title="Splay Tree (Self-Adjusting BST via Splaying)">
+          <span class="ds-icon">🚀</span>
+          <span class="ds-label">Splay Tree</span>
+        </button>
+        <button class="ds-tab-btn" data-ds="mway" title="Multi-Way (M-Way) Search Tree">
+          <span class="ds-icon">🌿</span>
+          <span class="ds-label">M-Way Tree</span>
+        </button>
+        <button class="ds-tab-btn" data-ds="trie" title="Trie (Prefix Tree for Strings & Words)">
+          <span class="ds-icon">🔤</span>
+          <span class="ds-label">Trie</span>
+        </button>
+      </div>
+      <div class="ds-nav-right">
+        <button id="btnToggleSidebar" class="btn btn-secondary btn-sm toggle-sidebar-btn" title="Toggle Information Panel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+          <span class="sidebar-toggle-text">Panel</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Header / Context Bar -->
+    <header class="header">
+      <div class="brand-section">
+        <div class="logo-badge" id="appLogoBadge">B</div>
+        <div>
+          <h1 class="brand-title" id="appBrandTitle">B-Tree Visualizer</h1>
+          <div class="brand-sub" id="appBrandSub">Order (M) Algorithm & On-Screen Step Explorer</div>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <!-- Order M Selector (for B-Tree, B+ Tree, M-Way Tree) -->
+        <div class="config-group" id="orderConfigGroup">
+          <label class="config-label" for="orderSelect">Order (M):</label>
+          <select id="orderSelect" class="select-input">
+            <option value="3">M = 3 (2-3 Tree | Max 2 keys, Min 1 key)</option>
+            <option value="4" selected>M = 4 (2-3-4 Tree | Max 3 keys, Min 1 key)</option>
+            <option value="5">M = 5 (Order 5 | Max 4 keys, Min 2 keys)</option>
+            <option value="6">M = 6 (Order 6 | Max 5 keys, Min 2 keys)</option>
+            <option value="7">M = 7 (Order 7 | Max 6 keys, Min 3 keys)</option>
+          </select>
+        </div>
+
+        <!-- Deletion Strategy Toggle (for B-Tree) -->
+        <div class="config-group strategy-config-group" id="strategyConfigGroup">
+          <label class="config-label">Deletion:</label>
+          <div class="segmented-control" id="strategyToggleGroup" role="radiogroup" aria-label="Deletion Algorithm Strategy">
+            <button type="button" class="segmented-btn active" id="btnStratCLRS" data-strat="clrs" title="CLRS (Cormen) Top-Down: Proactively borrows or merges on descent (Single-pass textbook method)">
+              <span class="strat-icon">📘</span> Cormen (CLRS)
+            </button>
+            <button type="button" class="segmented-btn" id="btnStratReactive" data-strat="reactive" title="Standard Bottom-Up: Deletes at leaf first, repairs underflow upwards">
+              <span class="strat-icon">⚡</span> Reactive
+            </button>
+          </div>
+          <select id="strategySelect" class="select-input" style="display: none;" title="Choose deletion algorithm paradigm">
+            <option value="clrs" selected>CLRS Top-Down (Cormen)</option>
+            <option value="reactive">Standard Bottom-Up (Reactive)</option>
+          </select>
+        </div>
+
+        <!-- Presets -->
+        <div class="config-group" id="presetConfigGroup">
+          <label class="config-label" for="presetSelect">Preset:</label>
+          <select id="presetSelect" class="select-input">
+            <option value="" disabled selected>Load Example...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Stats Ribbon (Fixed with white-space: nowrap) -->
+      <div class="stats-ribbon" id="statsRibbon">
+        <div class="stat-chip" id="chipKeys" title="Total number of keys/records"><span id="statLabelKeys">Keys:</span> <strong id="statKeys">0</strong></div>
+        <div class="stat-chip" id="chipNodes" title="Total number of nodes"><span id="statLabelNodes">Nodes:</span> <strong id="statNodes">0</strong></div>
+        <div class="stat-chip" id="chipHeight" title="Current tree height/depth"><span id="statLabelHeight">Height:</span> <strong id="statHeight">0</strong></div>
+        <div class="stat-chip" id="chipExtra1" title="Structure parameter 1"><span id="statLabelExtra1">Keys/Node:</span> <strong id="statExtra1">[1 .. 3]</strong></div>
+        <div class="stat-chip" id="chipExtra2" title="Structure parameter 2"><span id="statLabelExtra2">Children:</span> <strong id="statExtra2">[2 .. 4]</strong></div>
+      </div>
+    </header>
+
+    <!-- Operations Bar -->
+    <div class="operations-bar">
+      <!-- Mode Tabs -->
+      <div class="tabs-container">
+        <button id="tabSingleBtn" class="tab-btn active" data-tab="single">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Single Key
+        </button>
+        <button id="tabBatchBtn" class="tab-btn" data-tab="batch">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Array / Batch
+        </button>
+      </div>
+
+      <!-- Controls Wrapper -->
+      <div class="op-controls-wrapper">
+        <!-- Single Operation Panel -->
+        <div id="singlePanel" class="op-panel active">
+          <input type="number" id="singleInput" class="text-input input-single" placeholder="e.g. 42" autocomplete="off">
+          <button id="btnInsertSingle" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Insert
+          </button>
+          <button id="btnDeleteSingle" class="btn btn-danger">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Delete
+          </button>
+          <button id="btnSearchSingle" class="btn btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Search
+          </button>
+        </div>
+
+        <!-- Batch Operation Panel -->
+        <div id="batchPanel" class="op-panel">
+          <input type="text" id="batchInput" class="text-input input-batch" placeholder="e.g. 10, 20, 5, 6, 12, 30, 7, 17" autocomplete="off">
+          <button id="btnInsertBatch" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Batch Insert
+          </button>
+          <button id="btnDeleteBatch" class="btn btn-danger">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Batch Delete
+          </button>
+          <button id="btnSampleArray" class="btn btn-secondary btn-sm" title="Insert a sample array">Sample Array</button>
+          <button id="btnClearBatchInput" class="btn btn-secondary btn-sm" title="Clear input field">Clear</button>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions">
+        <button id="btnUndo" class="btn btn-secondary btn-sm" title="Undo last action (Ctrl+Z)" disabled>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+          Undo
+        </button>
+        <button id="btnRedo" class="btn btn-secondary btn-sm" title="Redo action (Ctrl+Y)" disabled>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
+          Redo
+        </button>
+        <button id="btnToggleEditMode" class="btn btn-outline-primary btn-sm" title="Toggle Drag & Drop Manual Tree Editor">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <span id="editModeBtnText">Manual Edit</span>
+        </button>
+        <button id="btnSaveTree" class="btn btn-secondary btn-sm" title="Save current tree to browser storage so it persists on refresh">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Tree
+        </button>
+        <button id="btnRandomKey" class="btn btn-secondary btn-sm" title="Add a random key">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/></svg>
+          + Random
+        </button>
+        <button id="btnClearTree" class="btn btn-secondary btn-sm" title="Clear entire tree">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      <!-- Canvas Viewport -->
+      <div id="canvasViewport" class="canvas-viewport">
+        <!-- Edit Mode Top Banner -->
+        <div id="editModeBanner" class="edit-mode-banner no-pan" style="display: none;">
+          <div class="edit-banner-info">
+            <span class="edit-badge">🛠️ MANUAL EDIT MODE</span>
+            <span class="edit-hint">Drag keys between nodes &bull; Click <strong>[+]</strong> to add keys/children &bull; Click <strong>[×]</strong> to delete a key</span>
+          </div>
+
+          <div class="edit-banner-actions">
+            <!-- Trash Drop Zone -->
+            <div id="trashDropZone" class="trash-drop-zone" title="Drag and drop any key here to delete it">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              <span>Drop Key Here to Delete</span>
+            </div>
+
+            <button id="btnAddKeyPrompt" class="btn btn-secondary btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              + Add Key
+            </button>
+            <button id="btnDoneEditing" class="btn btn-primary btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Done Editing
+            </button>
+          </div>
+        </div>
+
+        <svg id="canvasSvg" class="canvas-svg"></svg>
+        <div id="nodesLayer" class="nodes-layer"></div>
+
+        <!-- Floating Zoom & Pan Controls -->
+        <div class="canvas-overlay-controls no-pan">
+          <button id="btnZoomIn" class="btn btn-secondary btn-icon" title="Zoom In (+)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </button>
+          <button id="btnZoomOut" class="btn btn-secondary btn-icon" title="Zoom Out (-)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </button>
+          <button id="btnFitScreen" class="btn btn-secondary btn-icon" title="Fit to Screen">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+          <button id="btnResetZoom" class="btn btn-secondary btn-icon" title="Reset View (100%)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Sidebar (Explanations & History) -->
+      <aside class="sidebar">
+        <!-- Sidebar Navigation Tabs -->
+        <div class="sidebar-tabs">
+          <button class="sidebar-tab-btn active" data-pane="explanation">Step Narration</button>
+          <button class="sidebar-tab-btn" data-pane="history">Step History</button>
+          <button class="sidebar-tab-btn" data-pane="rules">Order (M) Rules</button>
+        </div>
+
+        <!-- Pane 1: Step Narration / Explanation -->
+        <div id="paneExplanation" class="sidebar-pane active">
+          <div class="step-card">
+            <div class="step-header">
+              <span id="stepBadge" class="step-badge step-badge-info">Ready</span>
+              <span id="stepIndexBadge" class="step-counter">Step 0 / 0</span>
+            </div>
+            <h3 id="stepTitle" class="step-title">Welcome to B-Tree Visualizer</h3>
+            
+            <div class="step-reason-box" id="stepReasonBox">
+              <div class="step-reason-label">Why this step occurred</div>
+              <p id="stepReasonText">Perform an insert, delete, or search operation to observe real-time step-by-step tree transformations and on-screen callouts.</p>
+            </div>
+          </div>
+
+          <!-- Tree Invariant Validation Checklist -->
+          <div class="invariant-card">
+            <div class="invariant-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              Order (M) Invariant Checklist
+            </div>
+            <ul class="invariant-list" id="invariantList">
+              <li class="invariant-item-valid">All non-root nodes satisfy [minKeys .. maxKeys] bound</li>
+              <li class="invariant-item-valid">All leaf nodes are at identical uniform depth</li>
+              <li class="invariant-item-valid">Keys in all nodes are strictly sorted in ascending order</li>
+              <li class="invariant-item-valid">Internal nodes with k keys have exactly k+1 children</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Pane 2: Step History Log -->
+        <div id="paneHistory" class="sidebar-pane">
+          <div class="history-list" id="historyList"></div>
+        </div>
+
+        <!-- Pane 3: Order M Rules Reference -->
+        <div id="paneRules" class="sidebar-pane">
+          <div class="rules-container">
+            <div class="rule-block">
+              <h4>Order (M) Capacity Formulas</h4>
+              <p>For a B-Tree of order <strong>M</strong>:</p>
+              <ul>
+                <li><strong>Max children</strong> = <code>M</code></li>
+                <li><strong>Min children</strong> = <code>⌈M / 2⌉</code> (non-root internal)</li>
+                <li><strong>Max keys</strong> in node = <code>M - 1</code></li>
+                <li><strong>Min keys</strong> in non-root = <code>⌈M / 2⌉ - 1</code></li>
+                <li><strong>Root keys</strong> = <code>[1 .. M - 1]</code> (if non-empty)</li>
+              </ul>
+            </div>
+
+            <div class="rule-block">
+              <h4>Splitting Animation (Node Overflow)</h4>
+              <p>When a node receives its <code>M</code>-th key (overflow), it splits around the median index <code>⌊M / 2⌋</code>. The median key is promoted <strong>↑ upwards</strong> to the parent, creating left and right sibling nodes.</p>
+            </div>
+
+            <div class="rule-block">
+              <h4>Deletion Paradigm Comparison</h4>
+              <p>You can toggle between two algorithms in the top toolbar:</p>
+              <ul>
+                <li><strong>CLRS Top-Down (Cormen):</strong> Preemptively borrows or merges on the way down whenever a child has <code>≤ minKeys</code>. Guarantees single-pass deletion without backtracking (used by Cormen / CLRS exams).</li>
+                <li><strong>Standard Bottom-Up (Reactive):</strong> Only borrows or merges if a leaf actually underflows (<code>< minKeys</code>). Minimizes structural changes (standard university lecture notes).</li>
+              </ul>
+            </div>
+
+            <div class="rule-block">
+              <h4>CLRS Deletion Cases (Cormen Chapter 18)</h4>
+              <ul>
+                <li><strong>Case 1:</strong> Key in leaf → directly remove key.</li>
+                <li><strong>Case 2a:</strong> Left child has <code>> minKeys</code> → swap with predecessor.</li>
+                <li><strong>Case 2b:</strong> Right child has <code>> minKeys</code> → swap with successor.</li>
+                <li><strong>Case 2c:</strong> Both children have <code>minKeys</code> → merge children with key.</li>
+                <li><strong>Case 3:</strong> Descent child has <code>≤ minKeys</code> → preemptively borrow from sibling (3a) or merge (3b) before descending.</li>
+              </ul>
+            </div>
+
+            <div class="rule-block">
+              <h4>Uniform Leaf Depth</h4>
+              <p>All leaves reside at the exact same depth from the root, guaranteeing logarithmic <code>O(log n)</code> performance.</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Bottom Playback Controls Bar -->
+    <footer class="playback-bar">
+      <div class="playback-controls">
+        <button id="btnJumpStart" class="btn btn-secondary btn-icon" title="Jump to start">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+        </button>
+        <button id="btnPrevStep" class="btn btn-secondary btn-icon" title="Previous step (Left Arrow)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button id="btnPlayPause" class="btn btn-primary" style="min-width: 105px;" title="Play / Pause (Spacebar)">
+          <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span id="playText">Play</span>
+        </button>
+        <button id="btnNextStep" class="btn btn-secondary btn-icon" title="Next step (Right Arrow)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button id="btnJumpEnd" class="btn btn-secondary btn-icon" title="Jump to end">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+        </button>
+      </div>
+
+      <div class="timeline-wrapper">
+        <input type="range" id="timelineScrubber" class="timeline-slider" min="0" max="0" value="0">
+        <span id="stepCounter" class="step-indicator">Step 0 / 0</span>
+      </div>
+
+      <div class="speed-control-group">
+        <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-right: 2px;">SPEED:</span>
+        <button class="speed-btn" data-speed="0.5">0.5x</button>
+        <button class="speed-btn active" data-speed="1.0">1.0x</button>
+        <button class="speed-btn" data-speed="1.5">1.5x</button>
+        <button class="speed-btn" data-speed="2.5">2.5x</button>
+      </div>
+    </footer>
+
+    <div id="toastContainer" class="toast-container"></div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

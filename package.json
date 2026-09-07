@@ -1,0 +1,10 @@
+{
+  "name": "btree-visualizer",
+  "version": "1.0.0",
+  "description": "Interactive B-Tree Visualizer and Algorithm Explorer",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test_btree.js"
+  }
+}

@@ -1,10 +1,11 @@
 {
-  "name": "btree-visualizer",
+  "name": "ds-algo-view",
   "version": "1.0.0",
-  "description": "Interactive B-Tree Visualizer and Algorithm Explorer",
+  "description": "Interactive Data Structure and Algorithm Visualizer",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "test": "node test_btree.js"
+    "dev": "node server.js",
+    "serve": "node server.js",
+    "test": "node test_btree.js && node test_visualizers.js"
   }
 }

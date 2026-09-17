@@ -113,6 +113,33 @@ assert(mway.getStats().totalKeys === 19, "M-Way should have 19 keys after delete
 assert(mway.validateInvariants().every(inv => inv.valid), "M-Way invariants must hold after delete");
 console.log("✓ M-Way Search Tree passed (zero undefined children across all snapshots).\n");
 
+// 5b. M-Way Search Tree (Order 3 with Alphabetic Keys: E, L, Q, W, B, H, I, C, P, Z, X, S, F)
+console.log("=== Test 5b: M-Way Search Tree (Order 3 with Alphabets) ===");
+const mwayAlpha = new MWayTree(3);
+const examKeys = ['E', 'L', 'Q', 'W', 'B', 'H', 'I', 'C', 'P', 'Z', 'X', 'S', 'F'];
+examKeys.forEach(k => {
+  const steps = mwayAlpha.insert(k);
+  assert(steps.length > 0, `Insert step should be recorded for ${k}`);
+});
+const alphaStats = mwayAlpha.getStats();
+console.log("M-Way Order 3 Alpha Stats:", alphaStats);
+assert(alphaStats.totalKeys === 13, "M-Way tree should have exactly 13 alphabet keys");
+assert(mwayAlpha.root.keys.join(',') === 'E,L', "Root node of Order-3 M-Way tree must be [E, L]");
+assert(mwayAlpha.validateInvariants().every(inv => inv.valid), "All M-Way invariants must hold for alphabet keys");
+
+// Search tests
+examKeys.forEach(k => {
+  const sRes = mwayAlpha.search(k);
+  assert(sRes.found === true, `Key ${k} must be found in M-Way tree`);
+});
+assert(mwayAlpha.search('M').found === false, "Key 'M' should not be found");
+
+// Delete test
+mwayAlpha.delete('F');
+assert(mwayAlpha.getStats().totalKeys === 12, "Key count must be 12 after deleting 'F'");
+assert(mwayAlpha.validateInvariants().every(inv => inv.valid), "Invariants must hold after delete");
+console.log("✓ M-Way Search Tree (Alphabet keys) passed.\n");
+
 // 6. Trie Tests
 console.log("=== Test 6: Trie ===");
 const trie = new Trie();

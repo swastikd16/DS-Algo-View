@@ -11,6 +11,8 @@
  * - All leaf nodes reside at the exact same depth
  */
 
+import { normalizeKey, compareKeys } from './mway_tree.js';
+
 let nextNodeId = 1;
 export function resetNodeIdCounter() {
   nextNodeId = 1;
@@ -154,8 +156,8 @@ export class BTree {
    */
   search(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return { found: false, steps: this.steps };
+    key = normalizeKey(key);
+    if (key === null) return { found: false, steps: this.steps };
 
     this.recordStep({
       type: 'start_search',
@@ -201,7 +203,7 @@ export class BTree {
       statusType: 'info'
     });
 
-    while (i < node.keys.length && key > node.keys[i]) {
+    while (i < node.keys.length && compareKeys(key, node.keys[i]) > 0) {
       this.recordStep({
         type: 'compare_key',
         actionCategory: 'search',
@@ -268,8 +270,8 @@ export class BTree {
    */
   insert(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return { steps: this.steps };
+    key = normalizeKey(key);
+    if (key === null) return { steps: this.steps };
 
     const M = this.M;
     const maxK = this.maxKeys;
@@ -331,7 +333,7 @@ export class BTree {
 
   _insertRecursive(node, key) {
     let idx = 0;
-    while (idx < node.keys.length && key > node.keys[idx]) {
+    while (idx < node.keys.length && compareKeys(key, node.keys[idx]) > 0) {
       idx++;
     }
 
@@ -494,8 +496,8 @@ export class BTree {
    */
   delete(key, strategy = this.deletionStrategy) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return { success: false, steps: this.steps };
+    key = normalizeKey(key);
+    if (key === null) return { success: false, steps: this.steps };
 
     const M = this.M;
     const minK = this.minKeys;
@@ -573,7 +575,7 @@ export class BTree {
      ======================================================================== */
   _deleteCLRS(node, key) {
     let idx = 0;
-    while (idx < node.keys.length && node.keys[idx] < key) {
+    while (idx < node.keys.length && compareKeys(node.keys[idx], key) < 0) {
       idx++;
     }
 
@@ -722,7 +724,7 @@ export class BTree {
      ======================================================================== */
   _deleteReactive(node, key) {
     let idx = 0;
-    while (idx < node.keys.length && node.keys[idx] < key) {
+    while (idx < node.keys.length && compareKeys(node.keys[idx], key) < 0) {
       idx++;
     }
 
@@ -1054,10 +1056,13 @@ export class BTree {
       // 1. Sorted order
       for (let i = 0; i < node.keys.length; i++) {
         const k = node.keys[i];
-        if (k <= minKey || k >= maxKey) {
+        if (minKey !== -Infinity && compareKeys(k, minKey) <= 0) {
           errors.push(`Node ${node.id} key ${k} violates search boundaries (${minKey}, ${maxKey})`);
         }
-        if (i > 0 && node.keys[i] <= node.keys[i - 1]) {
+        if (maxKey !== Infinity && compareKeys(k, maxKey) >= 0) {
+          errors.push(`Node ${node.id} key ${k} violates search boundaries (${minKey}, ${maxKey})`);
+        }
+        if (i > 0 && compareKeys(node.keys[i], node.keys[i - 1]) <= 0) {
           errors.push(`Node ${node.id} keys are not strictly increasing: [${node.keys.join(', ')}]`);
         }
       }
@@ -1164,7 +1169,7 @@ export class BTree {
     const node = this.findNodeById(nodeId);
     if (!node) return false;
     node.keys.push(key);
-    node.keys.sort((a, b) => a - b);
+    node.keys.sort(compareKeys);
     return true;
   }
 
@@ -1179,7 +1184,7 @@ export class BTree {
     const node = this.findNodeById(nodeId);
     if (!node || keyIndex < 0 || keyIndex >= node.keys.length) return false;
     node.keys[keyIndex] = newKey;
-    node.keys.sort((a, b) => a - b);
+    node.keys.sort(compareKeys);
     return true;
   }
 
@@ -1191,7 +1196,7 @@ export class BTree {
 
     const [key] = srcNode.keys.splice(keyIndex, 1);
     dstNode.keys.push(key);
-    dstNode.keys.sort((a, b) => a - b);
+    dstNode.keys.sort(compareKeys);
     return true;
   }
 

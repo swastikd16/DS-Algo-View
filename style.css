@@ -221,6 +221,10 @@ body {
   color: #059669;
 }
 
+.segmented-btn[data-type="alphabetic"].active {
+  color: #7c3aed;
+}
+
 .segmented-btn .strat-icon {
   font-size: 0.85rem;
   line-height: 1;

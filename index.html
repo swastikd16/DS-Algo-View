@@ -91,6 +91,19 @@
           </select>
         </div>
 
+        <!-- Key Type (Numbers / Alphabets) -->
+        <div class="config-group" id="keyTypeConfigGroup">
+          <label class="config-label">Keys:</label>
+          <div class="segmented-control" id="keyTypeToggleGroup" role="radiogroup" aria-label="Key Type">
+            <button type="button" class="segmented-btn active" id="btnKeyTypeNum" data-type="numeric" title="Numeric Keys (e.g. 10, 20, 42)">
+              123 Numbers
+            </button>
+            <button type="button" class="segmented-btn" id="btnKeyTypeAlpha" data-type="alphabetic" title="Alphabetic Keys (e.g. E, L, Q, W, B...)">
+              ABC Alphabets
+            </button>
+          </div>
+        </div>
+
         <!-- Presets -->
         <div class="config-group" id="presetConfigGroup">
           <label class="config-label" for="presetSelect">Preset:</label>
@@ -128,7 +141,7 @@
       <div class="op-controls-wrapper">
         <!-- Single Operation Panel -->
         <div id="singlePanel" class="op-panel active">
-          <input type="number" id="singleInput" class="text-input input-single" placeholder="e.g. 42" autocomplete="off">
+          <input type="text" id="singleInput" class="text-input input-single" placeholder="e.g. 42" autocomplete="off">
           <button id="btnInsertSingle" class="btn btn-primary">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Insert

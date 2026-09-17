@@ -8,6 +8,8 @@
  * - Real Unicode symbols (→, ≤, ≥, ✓, ⚡) instead of unparsed HTML entities
  */
 
+import { normalizeKey, compareKeys } from './mway_tree.js';
+
 let nextBSTNodeId = 1;
 export function resetBSTNodeIdCounter() {
   nextBSTNodeId = 1;
@@ -149,7 +151,8 @@ export class AVLTree {
 
   search(key) {
     this.steps = [];
-    key = Number(key);
+    key = normalizeKey(key);
+    if (key === null) return { found: false, steps: this.steps };
     const rec = createStepRecorder(() => this.cloneTree());
 
     rec.record({
@@ -211,8 +214,8 @@ export class AVLTree {
 
   insert(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return this.steps;
+    key = normalizeKey(key);
+    if (key === null) return this.steps;
 
     const rec = createStepRecorder(() => this.cloneTree());
 
@@ -459,8 +462,8 @@ export class AVLTree {
 
   delete(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return this.steps;
+    key = normalizeKey(key);
+    if (key === null) return this.steps;
 
     const rec = createStepRecorder(() => this.cloneTree());
 
@@ -675,8 +678,8 @@ export class AVLTree {
 
     const validate = (node, min, max) => {
       if (!node) return;
-      if (min !== null && node.key <= min) bstValid = false;
-      if (max !== null && node.key >= max) bstValid = false;
+      if (min !== null && compareKeys(node.key, min) <= 0) bstValid = false;
+      if (max !== null && compareKeys(node.key, max) >= 0) bstValid = false;
 
       const bf = this.getBalanceFactor(node);
       if (Math.abs(bf) > 1) avlValid = false;
@@ -788,7 +791,8 @@ export class RedBlackTree {
 
   search(key) {
     this.steps = [];
-    key = Number(key);
+    key = normalizeKey(key);
+    if (key === null) return { found: false, steps: this.steps };
     const rec = createStepRecorder(() => this.cloneTree());
 
     rec.record({
@@ -850,8 +854,8 @@ export class RedBlackTree {
 
   insert(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return this.steps;
+    key = normalizeKey(key);
+    if (key === null) return this.steps;
 
     const rec = createStepRecorder(() => this.cloneTree());
 
@@ -1231,8 +1235,8 @@ export class RedBlackTree {
 
   delete(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return this.steps;
+    key = normalizeKey(key);
+    if (key === null) return this.steps;
 
     const rec = createStepRecorder(() => this.cloneTree());
 
@@ -1766,7 +1770,8 @@ export class SplayTree {
 
   search(key) {
     this.steps = [];
-    key = Number(key);
+    key = normalizeKey(key);
+    if (key === null) return { found: false, steps: this.steps };
     const rec = createStepRecorder(() => this.cloneTree());
 
     rec.record({
@@ -1827,8 +1832,8 @@ export class SplayTree {
 
   insert(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return this.steps;
+    key = normalizeKey(key);
+    if (key === null) return this.steps;
 
     const rec = createStepRecorder(() => this.cloneTree());
 
@@ -1923,8 +1928,8 @@ export class SplayTree {
 
   delete(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return this.steps;
+    key = normalizeKey(key);
+    if (key === null) return this.steps;
 
     const rec = createStepRecorder(() => this.cloneTree());
 
@@ -2036,8 +2041,8 @@ export class SplayTree {
 
     const check = (node, min, max) => {
       if (!node) return;
-      if (min !== null && node.key <= min) bstValid = false;
-      if (max !== null && node.key >= max) bstValid = false;
+      if (min !== null && compareKeys(node.key, min) <= 0) bstValid = false;
+      if (max !== null && compareKeys(node.key, max) >= 0) bstValid = false;
 
       if (node.left && node.left.parent !== node) parentValid = false;
       if (node.right && node.right.parent !== node) parentValid = false;

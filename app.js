@@ -44,8 +44,11 @@ const orderSelect = document.getElementById('orderSelect');
 const strategyConfigGroup = document.getElementById('strategyConfigGroup');
 const strategySelect = document.getElementById('strategySelect');
 const btnStratCLRS = document.getElementById('btnStratCLRS');
-const btnStratReactive = document.getElementById('btnStratReactive');
 const presetSelect = document.getElementById('presetSelect');
+const keyTypeConfigGroup = document.getElementById('keyTypeConfigGroup');
+const btnKeyTypeNum = document.getElementById('btnKeyTypeNum');
+const btnKeyTypeAlpha = document.getElementById('btnKeyTypeAlpha');
+let currentKeyType = 'numeric'; // 'numeric' | 'alphabetic'
 
 // Stats Ribbon Elements
 const statKeys = document.getElementById('statKeys');
@@ -395,6 +398,7 @@ const STRUCTURE_DEFS = {
     singlePlaceholder: 'e.g. 42',
     batchPlaceholder: 'e.g. 20, 40, 60, 10, 30, 50, 70',
     presets: [
+      { id: 'mway_exam_alpha', label: 'Exam: E, L, Q, W, B, H, I, C, P, Z, X, S, F (Order 3)' },
       { id: 'mway_branch', label: 'M-Way Branching Demo (7 keys)' },
       { id: 'mway_multi', label: 'Multi-Key Node Demo (9 keys)' }
     ],
@@ -485,6 +489,9 @@ function switchDataStructure(dsKey, notify = true) {
   // Update Context Toolbar Visibility
   orderConfigGroup.style.display = def.showOrder ? 'flex' : 'none';
   strategyConfigGroup.style.display = def.showStrategy ? 'flex' : 'none';
+  if (keyTypeConfigGroup) {
+    keyTypeConfigGroup.style.display = (dsKey === 'trie') ? 'none' : 'flex';
+  }
   if (btnToggleEditMode) {
     btnToggleEditMode.style.display = def.allowManualEdit ? 'inline-flex' : 'none';
     if (!def.allowManualEdit && isEditMode) {
@@ -493,9 +500,8 @@ function switchDataStructure(dsKey, notify = true) {
   }
 
   // Update Input Fields & Placeholders
-  singleInput.type = def.isTextual ? 'text' : 'number';
-  singleInput.placeholder = def.singlePlaceholder;
-  batchInput.placeholder = def.batchPlaceholder;
+  singleInput.type = 'text';
+  updateInputPlaceholders();
 
   // Update Preset Dropdown
   presetSelect.innerHTML = '<option value="" disabled selected>Load Example...</option>';
@@ -534,6 +540,59 @@ function switchDataStructure(dsKey, notify = true) {
   if (notify) {
     showToast(`Switched to: ${def.name}`, 'info');
   }
+}
+
+// ==========================================================================
+// Key Type Management (Numbers vs Alphabets)
+// ==========================================================================
+function applyKeyType(newType, announce = true) {
+  if (newType !== 'numeric' && newType !== 'alphabetic') return;
+  currentKeyType = newType;
+
+  if (btnKeyTypeNum && btnKeyTypeAlpha) {
+    btnKeyTypeNum.classList.toggle('active', newType === 'numeric');
+    btnKeyTypeAlpha.classList.toggle('active', newType === 'alphabetic');
+  }
+
+  updateInputPlaceholders();
+
+  if (announce) {
+    const label = (newType === 'alphabetic') ? 'Alphabets (A-Z)' : 'Numbers (123)';
+    showToast(`Key Type: ${label}`, 'info');
+  }
+}
+
+function updateInputPlaceholders() {
+  const def = STRUCTURE_DEFS[currentStructure];
+  if (!def) return;
+  if (currentStructure === 'trie') {
+    singleInput.placeholder = def.singlePlaceholder;
+    batchInput.placeholder = def.batchPlaceholder;
+  } else if (currentKeyType === 'alphabetic') {
+    singleInput.placeholder = 'e.g. E';
+    batchInput.placeholder = 'e.g. E, L, Q, W, B, H, I, C, P, Z, X, S, F';
+  } else {
+    singleInput.placeholder = def.singlePlaceholder || 'e.g. 42';
+    batchInput.placeholder = def.batchPlaceholder || 'e.g. 10, 20, 5, 6, 12, 30, 7, 17';
+  }
+}
+
+// ponytail: Unified key parser handles both pure numbers and character tokens like 'E'.
+function parseInputKey(raw) {
+  if (!raw) return null;
+  const isTextual = STRUCTURE_DEFS[currentStructure]?.isTextual;
+  if (isTextual) return raw;
+
+  const isNumericStr = !isNaN(Number(raw)) && !isNaN(parseFloat(raw));
+  if (!isNumericStr) {
+    // Non-numeric letter/string detected: auto-activate alphabetic key mode
+    if (currentKeyType === 'numeric') {
+      applyKeyType('alphabetic', false);
+    }
+    return raw;
+  }
+
+  return (currentKeyType === 'alphabetic') ? raw : Number(raw);
 }
 
 // ==========================================================================
@@ -916,10 +975,9 @@ function executeSingleInsert() {
     return;
   }
 
-  const isText = STRUCTURE_DEFS[currentStructure]?.isTextual;
-  const val = isText ? raw : Number(raw);
-  if (!isText && isNaN(val)) {
-    showToast('Please enter a valid numeric value', 'error');
+  const val = parseInputKey(raw);
+  if (val === null) {
+    showToast('Please enter a valid value', 'error');
     singleInput.focus();
     return;
   }
@@ -944,10 +1002,9 @@ function executeSingleDelete() {
     return;
   }
 
-  const isText = STRUCTURE_DEFS[currentStructure]?.isTextual;
-  const val = isText ? raw : Number(raw);
-  if (!isText && isNaN(val)) {
-    showToast('Please enter a valid numeric value', 'error');
+  const val = parseInputKey(raw);
+  if (val === null) {
+    showToast('Please enter a valid value', 'error');
     singleInput.focus();
     return;
   }
@@ -972,10 +1029,9 @@ function executeSingleSearch() {
     return;
   }
 
-  const isText = STRUCTURE_DEFS[currentStructure]?.isTextual;
-  const val = isText ? raw : Number(raw);
-  if (!isText && isNaN(val)) {
-    showToast('Please enter a valid numeric value', 'error');
+  const val = parseInputKey(raw);
+  if (val === null) {
+    showToast('Please enter a valid value', 'error');
     singleInput.focus();
     return;
   }
@@ -996,10 +1052,19 @@ function executeBatchInsert() {
     return;
   }
 
-  const isText = STRUCTURE_DEFS[currentStructure].isTextual;
-  let items = isText 
-    ? raw.split(/[\s,]+/).filter(Boolean)
-    : raw.split(/[\s,]+/).map(s => parseInt(s, 10)).filter(n => !isNaN(n));
+  const isText = STRUCTURE_DEFS[currentStructure]?.isTextual;
+  const rawTokens = raw.split(/[\s,]+/).filter(Boolean);
+  const hasAlphabetToken = rawTokens.some(t => isNaN(Number(t)));
+
+  let items;
+  if (isText || currentKeyType === 'alphabetic' || hasAlphabetToken) {
+    if (currentKeyType === 'numeric' && hasAlphabetToken && !isText) {
+      applyKeyType('alphabetic', false);
+    }
+    items = rawTokens;
+  } else {
+    items = rawTokens.map(s => parseInt(s, 10)).filter(n => !isNaN(n));
+  }
 
   if (items.length === 0) {
     showToast('No valid items found to insert', 'error');
@@ -1031,10 +1096,19 @@ function executeBatchDelete() {
     return;
   }
 
-  const isText = STRUCTURE_DEFS[currentStructure].isTextual;
-  let items = isText 
-    ? raw.split(/[\s,]+/).filter(Boolean)
-    : raw.split(/[\s,]+/).map(s => parseInt(s, 10)).filter(n => !isNaN(n));
+  const isText = STRUCTURE_DEFS[currentStructure]?.isTextual;
+  const rawTokens = raw.split(/[\s,]+/).filter(Boolean);
+  const hasAlphabetToken = rawTokens.some(t => isNaN(Number(t)));
+
+  let items;
+  if (isText || currentKeyType === 'alphabetic' || hasAlphabetToken) {
+    if (currentKeyType === 'numeric' && hasAlphabetToken && !isText) {
+      applyKeyType('alphabetic', false);
+    }
+    items = rawTokens;
+  } else {
+    items = rawTokens.map(s => parseInt(s, 10)).filter(n => !isNaN(n));
+  }
 
   if (items.length === 0) {
     showToast('No valid items found to delete', 'error');
@@ -1061,6 +1135,8 @@ function executeBatchDelete() {
 function handleSampleArray() {
   if (currentStructure === 'trie') {
     batchInput.value = 'tea, ted, ten, to, in, inn';
+  } else if (currentKeyType === 'alphabetic') {
+    batchInput.value = 'E, L, Q, W, B, H, I, C, P, Z, X, S, F';
   } else if (currentStructure === 'btree' || currentStructure === 'bplus' || currentStructure === 'mway') {
     batchInput.value = '10, 20, 5, 6, 12, 30, 7, 17, 3, 16, 22, 25';
   } else if (currentStructure === 'avl') {
@@ -1117,8 +1193,20 @@ function handlePresetChange(e) {
     if (preset === 'splay_access') keysToInsert = [50, 30, 70, 20, 40];
     else keysToInsert = [10, 20, 30, 40, 50];
   } else if (currentStructure === 'mway') {
-    if (preset === 'mway_branch') keysToInsert = [20, 40, 60, 10, 30, 50, 70];
-    else keysToInsert = [15, 25, 35, 5, 10, 20, 30, 40, 50];
+    if (preset === 'mway_exam_alpha') {
+      if (trees.mway.M !== 3) {
+        trees.mway = new MWayTree(3);
+        if (orderSelect) orderSelect.value = '3';
+      }
+      applyKeyType('alphabetic', false);
+      keysToInsert = ['E', 'L', 'Q', 'W', 'B', 'H', 'I', 'C', 'P', 'Z', 'X', 'S', 'F'];
+    } else if (preset === 'mway_branch') {
+      applyKeyType('numeric', false);
+      keysToInsert = [20, 40, 60, 10, 30, 50, 70];
+    } else {
+      applyKeyType('numeric', false);
+      keysToInsert = [15, 25, 35, 5, 10, 20, 30, 40, 50];
+    }
   } else if (currentStructure === 'trie') {
     if (preset === 'trie_words') keysToInsert = ['tea', 'ted', 'ten', 'to', 'in', 'inn'];
     else keysToInsert = ['apple', 'app', 'application', 'bat', 'ball'];
@@ -1149,6 +1237,11 @@ function handleRandomKey() {
     const pool = ['code', 'data', 'tree', 'node', 'link', 'hash', 'leaf', 'root', 'fast', 'byte'];
     const randWord = pool[Math.floor(Math.random() * pool.length)] + Math.floor(Math.random() * 10);
     singleInput.value = randWord;
+    executeSingleInsert();
+  } else if (currentKeyType === 'alphabetic') {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const randChar = letters[Math.floor(Math.random() * letters.length)];
+    singleInput.value = randChar;
     executeSingleInsert();
   } else {
     const randVal = Math.floor(Math.random() * 95) + 5;
@@ -1286,6 +1379,14 @@ function setupEventListeners() {
   }
   if (btnStratReactive) {
     btnStratReactive.addEventListener('click', () => applyDeletionStrategy('reactive'));
+  }
+
+  // 3b. Key Type Buttons (Numbers / Alphabets)
+  if (btnKeyTypeNum) {
+    btnKeyTypeNum.addEventListener('click', () => applyKeyType('numeric'));
+  }
+  if (btnKeyTypeAlpha) {
+    btnKeyTypeAlpha.addEventListener('click', () => applyKeyType('alphabetic'));
   }
 
   // 4. Presets

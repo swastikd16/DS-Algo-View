@@ -13,6 +13,30 @@ export function resetMWayNodeIdCounter() {
   nextMWayNodeId = 1;
 }
 
+// ponytail: Key normalization parses numeric strings as numbers, otherwise preserves string tokens (e.g. 'E', 'L').
+export function normalizeKey(key) {
+  if (key === null || key === undefined) return null;
+  if (typeof key === 'number') return isNaN(key) ? null : key;
+  const str = String(key).trim();
+  if (str === '') return null;
+  if (!isNaN(Number(str))) {
+    return Number(str);
+  }
+  return str;
+}
+
+// ponytail: Key comparison supports both numeric order and alphabetical order.
+export function compareKeys(a, b) {
+  const isNumA = typeof a === 'number';
+  const isNumB = typeof b === 'number';
+  if (isNumA && isNumB) {
+    return a - b;
+  }
+  const strA = String(a);
+  const strB = String(b);
+  return strA < strB ? -1 : strA > strB ? 1 : 0;
+}
+
 export class MWayTreeNode {
   constructor(isLeaf = true, id = null, maxChildren = 4) {
     this.id = id || `mway_node_${nextMWayNodeId++}`;
@@ -74,8 +98,8 @@ export class MWayTree {
 
   search(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return { found: false, steps: this.steps };
+    key = normalizeKey(key);
+    if (key === null) return { found: false, steps: this.steps };
     this.recordStep({
       title: `Search Initiated: Key ${key}`,
       action: `Searching for key ${key} starting from the root node.`,
@@ -120,7 +144,7 @@ export class MWayTree {
 
       // Find child branch
       let childIdx = 0;
-      while (childIdx < curr.keys.length && key > curr.keys[childIdx]) {
+      while (childIdx < curr.keys.length && compareKeys(key, curr.keys[childIdx]) > 0) {
         childIdx++;
       }
 
@@ -159,8 +183,8 @@ export class MWayTree {
 
   insert(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return this.steps;
+    key = normalizeKey(key);
+    if (key === null) return this.steps;
 
     this.recordStep({
       title: `Insert Initiated: Key ${key}`,
@@ -207,14 +231,14 @@ export class MWayTree {
 
       // If node has space and is leaf, or if there's no suitable child branch
       let childIdx = 0;
-      while (childIdx < curr.keys.length && key > curr.keys[childIdx]) {
+      while (childIdx < curr.keys.length && compareKeys(key, curr.keys[childIdx]) > 0) {
         childIdx++;
       }
 
       if (curr.isLeaf) {
         if (curr.keys.length < this.maxKeys) {
           curr.keys.push(key);
-          curr.keys.sort((a, b) => a - b);
+          curr.keys.sort(compareKeys);
           const idx = curr.keys.indexOf(key);
 
           this.recordStep({
@@ -288,8 +312,8 @@ export class MWayTree {
 
   delete(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return this.steps;
+    key = normalizeKey(key);
+    if (key === null) return this.steps;
 
     this.recordStep({
       title: `Delete Initiated: Key ${key}`,
@@ -425,7 +449,7 @@ export class MWayTree {
 
     // Branch down
     let childIdx = 0;
-    while (childIdx < node.keys.length && key > node.keys[childIdx]) {
+    while (childIdx < node.keys.length && compareKeys(key, node.keys[childIdx]) > 0) {
       childIdx++;
     }
 
@@ -481,7 +505,7 @@ export class MWayTree {
       if (node.keys.length > this.maxKeys) validMaxKeys = false;
       if (node.children.length > this.maxChildren) validMaxChildren = false;
       for (let i = 0; i < node.keys.length - 1; i++) {
-        if (node.keys[i] >= node.keys[i + 1]) validSorting = false;
+        if (compareKeys(node.keys[i], node.keys[i + 1]) >= 0) validSorting = false;
       }
       for (const ch of node.children) if (ch) check(ch);
     };

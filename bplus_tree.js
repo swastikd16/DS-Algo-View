@@ -10,6 +10,8 @@
  * - Max keys: M - 1. Min keys (non-root): ceil(M/2) - 1.
  */
 
+import { normalizeKey, compareKeys } from './mway_tree.js';
+
 let nextBPlusNodeId = 1;
 export function resetBPlusNodeIdCounter() {
   nextBPlusNodeId = 1;
@@ -95,8 +97,8 @@ export class BPlusTree {
 
   search(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return { found: false, steps: this.steps };
+    key = normalizeKey(key);
+    if (key === null) return { found: false, steps: this.steps };
 
     this.recordStep({
       title: `Search Initiated: Key ${key}`,
@@ -125,7 +127,7 @@ export class BPlusTree {
     let curr = this.root;
     while (!curr.isLeaf) {
       let idx = 0;
-      while (idx < curr.keys.length && key >= curr.keys[idx]) {
+      while (idx < curr.keys.length && compareKeys(key, curr.keys[idx]) >= 0) {
         idx++;
       }
       this.recordStep({
@@ -176,8 +178,8 @@ export class BPlusTree {
 
   insert(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return this.steps;
+    key = normalizeKey(key);
+    if (key === null) return this.steps;
 
     this.recordStep({
       title: `Insert Initiated: Key ${key}`,
@@ -212,7 +214,7 @@ export class BPlusTree {
     while (!curr.isLeaf) {
       path.push(curr);
       let idx = 0;
-      while (idx < curr.keys.length && key >= curr.keys[idx]) {
+      while (idx < curr.keys.length && compareKeys(key, curr.keys[idx]) >= 0) {
         idx++;
       }
       curr = curr.children[idx];
@@ -235,7 +237,7 @@ export class BPlusTree {
 
     // Insert key in sorted order into leaf
     curr.keys.push(key);
-    curr.keys.sort((a, b) => a - b);
+    curr.keys.sort(compareKeys);
     const insIdx = curr.keys.indexOf(key);
 
     this.recordStep({
@@ -319,7 +321,7 @@ export class BPlusTree {
 
   insertIntoInternal(parent, key, rightChild, path) {
     let idx = 0;
-    while (idx < parent.keys.length && key > parent.keys[idx]) {
+    while (idx < parent.keys.length && compareKeys(key, parent.keys[idx]) > 0) {
       idx++;
     }
     parent.keys.splice(idx, 0, key);
@@ -399,8 +401,8 @@ export class BPlusTree {
 
   delete(key) {
     this.steps = [];
-    key = Number(key);
-    if (isNaN(key)) return this.steps;
+    key = normalizeKey(key);
+    if (key === null) return this.steps;
 
     this.recordStep({
       title: `Delete Initiated: Key ${key}`,
@@ -432,7 +434,7 @@ export class BPlusTree {
     while (!curr.isLeaf) {
       path.push(curr);
       let idx = 0;
-      while (idx < curr.keys.length && key >= curr.keys[idx]) {
+      while (idx < curr.keys.length && compareKeys(key, curr.keys[idx]) >= 0) {
         idx++;
       }
       curr = curr.children[idx];

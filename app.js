@@ -60,6 +60,20 @@ const appLogoBadge = document.getElementById('appLogoBadge');
 const appBrandTitle = document.getElementById('appBrandTitle');
 const appBrandSub = document.getElementById('appBrandSub');
 
+// Topic Dropdowns
+const btnTopicTrees = document.getElementById('btnTopicTrees');
+const btnTopicHeaps = document.getElementById('btnTopicHeaps');
+const dropdownTrees = document.getElementById('dropdownTrees');
+const dropdownHeaps = document.getElementById('dropdownHeaps');
+const activeTreeLabel = document.getElementById('activeTreeLabel');
+const activeHeapLabel = document.getElementById('activeHeapLabel');
+const dsMenuItems = document.querySelectorAll('.ds-menu-item');
+
+// Dual View Array Strip
+const heapArrayStrip = document.getElementById('heapArrayStrip');
+const arrayStripFormula = document.getElementById('arrayStripFormula');
+const arrayCellsContainer = document.getElementById('arrayCellsContainer');
+
 const orderConfigGroup = document.getElementById('orderConfigGroup');
 const orderSelect = document.getElementById('orderSelect');
 const strategyConfigGroup = document.getElementById('strategyConfigGroup');
@@ -73,6 +87,7 @@ const btnKeyTypeAlpha = document.getElementById('btnKeyTypeAlpha');
 let currentKeyType = 'numeric'; // 'numeric' | 'alphabetic'
 
 // Stats Ribbon Elements
+const statWork = document.getElementById('statWork');
 const statKeys = document.getElementById('statKeys');
 const statNodes = document.getElementById('statNodes');
 const statHeight = document.getElementById('statHeight');
@@ -152,6 +167,52 @@ const historyList = document.getElementById('historyList');
 const invariantList = document.getElementById('invariantList');
 const paneRules = document.getElementById('paneRules');
 const toastContainer = document.getElementById('toastContainer');
+
+// Code Trace Elements
+const codeTraceTitle = document.getElementById('codeTraceTitle');
+const codeTraceBadge = document.getElementById('codeTraceBadge');
+const codeTraceContainer = document.getElementById('codeTraceContainer');
+
+// Quiz Mode Elements
+const btnQuizMode = document.getElementById('btnQuizMode');
+const quizModal = document.getElementById('quizModal');
+const btnQuizClose = document.getElementById('btnQuizClose');
+const quizQuestionBadge = document.getElementById('quizQuestionBadge');
+const quizQuestionPrompt = document.getElementById('quizQuestionPrompt');
+const quizOptionsList = document.getElementById('quizOptionsList');
+const quizFeedback = document.getElementById('quizFeedback');
+const quizFeedbackTitle = document.getElementById('quizFeedbackTitle');
+const quizFeedbackText = document.getElementById('quizFeedbackText');
+const quizScoreBadge = document.getElementById('quizScoreBadge');
+const btnQuizContinue = document.getElementById('btnQuizContinue');
+let isQuizModeActive = false;
+let quizScore = 0;
+let quizTotal = 0;
+
+// Compare Mode Elements
+const btnCompare = document.getElementById('btnCompare');
+const compareModal = document.getElementById('compareModal');
+const btnCompareClose = document.getElementById('btnCompareClose');
+const btnCompareDone = document.getElementById('btnCompareDone');
+const compareSelectA = document.getElementById('compareSelectA');
+const compareSelectB = document.getElementById('compareSelectB');
+const compareInputKeys = document.getElementById('compareInputKeys');
+const btnRunCompare = document.getElementById('btnRunCompare');
+const compareHeaderA = document.getElementById('compareHeaderA');
+const compareHeaderB = document.getElementById('compareHeaderB');
+const compareMetricsA = document.getElementById('compareMetricsA');
+const compareMetricsB = document.getElementById('compareMetricsB');
+const compareThA = document.getElementById('compareThA');
+const compareThB = document.getElementById('compareThB');
+const compareTableBody = document.getElementById('compareTableBody');
+
+// Exam Export Elements
+const btnExportExam = document.getElementById('btnExportExam');
+const exportModal = document.getElementById('exportModal');
+const btnExportClose = document.getElementById('btnExportClose');
+const btnExportModalDone = document.getElementById('btnExportModalDone');
+const btnPrintSheet = document.getElementById('btnPrintSheet');
+const printableExamSheet = document.getElementById('printableExamSheet');
 
 // ==========================================================================
 // Data Structure Metadata & Definitions
@@ -813,10 +874,26 @@ function switchDataStructure(dsKey, notify = true) {
     localStorage.setItem('dsa_active_structure', dsKey);
   } catch (_) {}
 
-  // Update Navigation Tabs
+  // Update Navigation Tabs & Topic Dropdowns
   dsNavButtons.forEach(btn => {
     btn.classList.toggle('active', btn.dataset.ds === dsKey);
   });
+
+  const treeKeys = ['btree', 'bplus', 'avl', 'redblack', 'splay', 'mway', 'trie'];
+  const heapKeys = ['minheap', 'maxheap', 'deap', 'leftist', 'skew', 'binomial', 'lazybinomial', 'fibonacci'];
+  const isTree = treeKeys.includes(dsKey);
+  const isHeap = heapKeys.includes(dsKey);
+
+  if (btnTopicTrees) btnTopicTrees.classList.toggle('active', isTree);
+  if (btnTopicHeaps) btnTopicHeaps.classList.toggle('active', isHeap);
+  if (isTree && activeTreeLabel) activeTreeLabel.textContent = STRUCTURE_DEFS[dsKey].name;
+  if (isHeap && activeHeapLabel) activeHeapLabel.textContent = STRUCTURE_DEFS[dsKey].name;
+
+  if (dsMenuItems) {
+    dsMenuItems.forEach(item => {
+      item.classList.toggle('active', item.dataset.ds === dsKey);
+    });
+  }
 
   const def = STRUCTURE_DEFS[dsKey];
 
@@ -875,15 +952,31 @@ function switchDataStructure(dsKey, notify = true) {
   // Update Undo / Redo buttons
   updateUndoRedoButtons();
 
+  // Reset work counter
+  if (statWork) statWork.textContent = '0 ops';
+
   // Update Stats & Invariants
   updateTreeStats();
   updateInvariantsCheck();
 
-  // Render tree
+  // Auto-populate starter demo if tree is empty
   const activeTree = getActiveTree();
-  const snapshot = activeTree.getSnapshot();
-  renderer.render(snapshot);
-  renderer.resetView(snapshot);
+  const stats = activeTree.getStats ? activeTree.getStats() : {};
+  const count = stats.totalKeys !== undefined ? stats.totalKeys : (stats.totalWords || 0);
+  if (count === 0 && def.presets && def.presets.length > 0) {
+    loadPreset(def.presets[0].id, false);
+  } else {
+    // Render existing tree
+    const snapshot = activeTree.getSnapshot();
+    renderer.render(snapshot);
+    renderer.resetView(snapshot);
+  }
+
+  // Update Heap Array Strip
+  renderHeapArrayStrip(getActiveTree());
+
+  // Update Code Trace
+  updateCodeTrace(null, 0);
 
   stepTitle.textContent = `${def.title} Active`;
   stepReasonText.textContent = `Explore ${def.name} operations with real-time on-screen popups and step-by-step animations.`;
@@ -1326,8 +1419,31 @@ function handleStepChange(step, index, totalSteps) {
     `;
   }
 
+  // Live Work / Ops Metric Calculation
+  let ops = 0;
+  if (controller.steps && controller.steps.length > 0) {
+    for (let i = 0; i <= index && i < controller.steps.length; i++) {
+      const s = controller.steps[i];
+      if (s.comparisons) ops += s.comparisons;
+      else if (['swap', 'rotate', 'split', 'merge', 'cut'].includes(s.actionCategory)) ops += 2;
+      else ops += 1;
+    }
+  }
+  if (statWork) statWork.textContent = `${ops} ops`;
+
   // Render tree snapshot
   renderer.render(step.treeSnapshot, step);
+
+  // Render Heap Array Strip if applicable
+  renderHeapArrayStrip(getActiveTree(), step);
+
+  // Synchronized Code Trace
+  updateCodeTrace(step, index);
+
+  // Check Quiz Mode trigger
+  if (isQuizModeActive) {
+    checkAndTriggerQuiz(step, index);
+  }
 
   highlightHistoryItem(index);
   updateInvariantsCheck();
@@ -1599,8 +1715,7 @@ function handleSampleArray() {
 // ==========================================================================
 // Presets Loading
 // ==========================================================================
-function handlePresetChange(e) {
-  const preset = e.target.value;
+function loadPreset(preset, notify = true) {
   if (!preset) return;
 
   pushUndoState();
@@ -1699,9 +1814,16 @@ function handlePresetChange(e) {
   controller.loadSteps(allSteps, false);
   renderer.render(tree.getSnapshot());
   renderer.resetView(tree.getSnapshot());
+  renderHeapArrayStrip(tree);
   saveTreeState(false);
-  presetSelect.value = '';
-  showToast(`Loaded preset example`, 'success');
+  if (presetSelect) presetSelect.value = '';
+  if (notify) {
+    showToast(`Loaded preset example`, 'success');
+  }
+}
+
+function handlePresetChange(e) {
+  loadPreset(e.target.value, true);
 }
 
 // ==========================================================================
@@ -1808,6 +1930,577 @@ function toggleEditMode(enable) {
 }
 
 // ==========================================================================
+// Heap Array Representation Strip (Dual View)
+// ==========================================================================
+function renderHeapArrayStrip(tree, step) {
+  if (!heapArrayStrip) return;
+  if (!['minheap', 'maxheap', 'deap'].includes(currentStructure)) {
+    heapArrayStrip.style.display = 'none';
+    return;
+  }
+  heapArrayStrip.style.display = 'flex';
+
+  const activeKeys = step ? (step.targetKeys || []) : [];
+
+  if (currentStructure === 'deap') {
+    if (arrayStripFormula) {
+      arrayStripFormula.textContent = 'Left: Min-Heap [2..partner] • Right: Max-Heap • Partner: i ± 2^(⌊log2(i)⌋-1)';
+    }
+    const arr = tree.deap || tree.arr || [];
+    if (arrayCellsContainer) {
+      arrayCellsContainer.innerHTML = '';
+      if (arr.length <= 2) {
+        arrayCellsContainer.innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted);padding:4px 8px;">Deap array is currently empty.</span>';
+        return;
+      }
+      for (let i = 2; i < arr.length; i++) {
+        const val = arr[i];
+        const isMin = tree._isMinSubtree ? tree._isMinSubtree(i) : (tree.isMinSubtree ? tree.isMinSubtree(i) : (i < 4));
+        const cell = document.createElement('div');
+        cell.className = `array-cell ${isMin ? 'cell-min' : 'cell-max'}`;
+        if (activeKeys.includes(val)) cell.classList.add('cell-active');
+        cell.title = `Index ${i} (${isMin ? 'Min-Heap Subtree' : 'Max-Heap Subtree'})`;
+        cell.innerHTML = `
+          <span class="cell-index">[${i}]</span>
+          <span class="cell-val">${val}</span>
+        `;
+        arrayCellsContainer.appendChild(cell);
+      }
+    }
+  } else {
+    if (arrayStripFormula) {
+      arrayStripFormula.textContent = 'Parent: ⌊i/2⌋ • Left: 2i • Right: 2i+1';
+    }
+    const heap = tree.heap || [];
+    if (arrayCellsContainer) {
+      arrayCellsContainer.innerHTML = '';
+      if (heap.length === 0) {
+        arrayCellsContainer.innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted);padding:4px 8px;">Heap array is currently empty.</span>';
+        return;
+      }
+      for (let idx = 0; idx < heap.length; idx++) {
+        const displayIdx = idx + 1;
+        const val = heap[idx];
+        const cell = document.createElement('div');
+        cell.className = 'array-cell';
+        if (activeKeys.includes(val)) cell.classList.add('cell-active');
+        cell.title = `Index ${displayIdx} (Parent: ${Math.floor(displayIdx/2) || 'None'}, Left: ${2*displayIdx}, Right: ${2*displayIdx+1})`;
+        cell.innerHTML = `
+          <span class="cell-index">[${displayIdx}]</span>
+          <span class="cell-val">${val}</span>
+        `;
+        arrayCellsContainer.appendChild(cell);
+      }
+    }
+  }
+}
+
+// ==========================================================================
+// Synchronized Pseudocode / Algorithm Trace
+// ==========================================================================
+const PSEUDOCODE_TRACES = {
+  btree: [
+    { line: 1, text: "function BTree-Insert(T, k):", match: ["start", "insert"] },
+    { line: 2, text: "  r = T.root; if r.isFull():", match: ["overflow", "split", "full"] },
+    { line: 3, text: "    s = AllocateNode(); T.root = s; s.children[0] = r", match: ["new root", "promote"] },
+    { line: 4, text: "    SplitChild(s, 0, r); InsertNonFull(s, k)", match: ["split child", "median"] },
+    { line: 5, text: "  else InsertNonFull(r, k)", match: ["search", "descend"] },
+    { line: 6, text: "function BTree-Delete(T, k):", match: ["delete", "remove"] },
+    { line: 7, text: "  if in leaf: direct remove; else swap predecessor", match: ["predecessor", "leaf remove"] },
+    { line: 8, text: "  if underflow: borrow from sibling or merge", match: ["borrow", "merge", "underflow"] }
+  ],
+  bplus: [
+    { line: 1, text: "function BPlus-Insert(T, k):", match: ["start", "insert"] },
+    { line: 2, text: "  leaf = FindLeaf(T.root, k)", match: ["find", "search", "descend"] },
+    { line: 3, text: "  InsertIntoLeaf(leaf, k)", match: ["leaf", "insert leaf"] },
+    { line: 4, text: "  if leaf.overflow(): SplitLeafAndCopyUp(leaf)", match: ["split", "copy up", "overflow"] },
+    { line: 5, text: "  PropagateIndexKeyToParent(parent, key)", match: ["promote", "parent", "propagate"] }
+  ],
+  avl: [
+    { line: 1, text: "function AVL-Insert(node, k):", match: ["start", "insert"] },
+    { line: 2, text: "  node = StandardBSTInsert(node, k)", match: ["bst", "leaf", "insert"] },
+    { line: 3, text: "  bf = height(node.left) - height(node.right)", match: ["balance", "height", "bf"] },
+    { line: 4, text: "  if bf > 1 and k < node.left.key: RotateRight(node) // LL", match: ["ll", "rotate right", "left-left"] },
+    { line: 5, text: "  if bf < -1 and k > node.right.key: RotateLeft(node) // RR", match: ["rr", "rotate left", "right-right"] },
+    { line: 6, text: "  if bf > 1 and k > node.left.key: RotateLeftRight(node) // LR", match: ["lr", "left-right", "double"] },
+    { line: 7, text: "  if bf < -1 and k < node.right.key: RotateRightLeft(node) // RL", match: ["rl", "right-left"] }
+  ],
+  redblack: [
+    { line: 1, text: "function RB-Insert(T, z):", match: ["start", "insert"] },
+    { line: 2, text: "  BST-Insert(z); z.color = RED", match: ["red", "insert", "leaf"] },
+    { line: 3, text: "  while z != root and z.parent.color == RED:", match: ["double red", "violation"] },
+    { line: 4, text: "    if uncle(z).color == RED: Recolor(parent, uncle, grand)", match: ["recolor", "uncle red"] },
+    { line: 5, text: "    else: TriangleToLine(z); RotateAndRecolor(grand)", match: ["rotate", "triangle", "line"] },
+    { line: 6, text: "  T.root.color = BLACK", match: ["root black", "finish"] }
+  ],
+  splay: [
+    { line: 1, text: "function Splay(T, x):", match: ["start", "splay"] },
+    { line: 2, text: "  while x != T.root:", match: ["ascend", "step"] },
+    { line: 3, text: "    if x.parent == T.root: Zig(x) // Single rotation", match: ["zig "] },
+    { line: 4, text: "    else if same alignment: Zig-Zig(x) // Double same", match: ["zig-zig"] },
+    { line: 5, text: "    else: Zig-Zag(x) // Double alternate", match: ["zig-zag"] }
+  ],
+  mway: [
+    { line: 1, text: "function MWay-Search/Insert(node, k):", match: ["start", "insert"] },
+    { line: 2, text: "  if k in node.keys: return found", match: ["found", "duplicate"] },
+    { line: 3, text: "  if node.keys.length < M - 1: insertSorted(node, k)", match: ["insert", "has space"] },
+    { line: 4, text: "  else: descend into child[i] where k[i-1] < k < k[i]", match: ["descend", "child", "branch"] }
+  ],
+  trie: [
+    { line: 1, text: "function Trie-Insert(root, word):", match: ["start", "insert"] },
+    { line: 2, text: "  curr = root; for char c in word:", match: ["traverse", "char"] },
+    { line: 3, text: "    if not curr.children[c]: curr.children[c] = Node()", match: ["new node", "create", "branch"] },
+    { line: 4, text: "    curr = curr.children[c]", match: ["advance", "step"] },
+    { line: 5, text: "  curr.isEndOfWord = true", match: ["end of word", "finish", "complete"] }
+  ],
+  minheap: [
+    { line: 1, text: "function MinHeap-Insert(H, k):", match: ["start", "insert"] },
+    { line: 2, text: "  H.size++; H[H.size] = k; i = H.size", match: ["append", "tail"] },
+    { line: 3, text: "  while i > 1 and H[⌊i/2⌋] > H[i]: // Swim up", match: ["swim", "bubble up", "compare"] },
+    { line: 4, text: "    swap(H[⌊i/2⌋], H[i]); i = ⌊i/2⌋", match: ["swap", "swim swap"] },
+    { line: 5, text: "function MinHeap-ExtractMin(H):", match: ["extract", "delete min"] },
+    { line: 6, text: "  min = H[1]; H[1] = H[H.size--]; Sink(1); return min", match: ["sink", "trickle down", "min root"] }
+  ],
+  maxheap: [
+    { line: 1, text: "function MaxHeap-Insert(H, k):", match: ["start", "insert"] },
+    { line: 2, text: "  H.size++; H[H.size] = k; i = H.size", match: ["append", "tail"] },
+    { line: 3, text: "  while i > 1 and H[⌊i/2⌋] < H[i]: // Swim up", match: ["swim", "bubble up", "compare"] },
+    { line: 4, text: "    swap(H[⌊i/2⌋], H[i]); i = ⌊i/2⌋", match: ["swap", "swim swap"] },
+    { line: 5, text: "function MaxHeap-ExtractMax(H):", match: ["extract", "delete max"] },
+    { line: 6, text: "  max = H[1]; H[1] = H[H.size--]; Sink(1); return max", match: ["sink", "trickle down", "max root"] }
+  ],
+  deap: [
+    { line: 1, text: "function Deap-Insert(D, k):", match: ["start", "insert"] },
+    { line: 2, text: "  i = ++D.size; j = partnerIndex(i)", match: ["partner", "position"] },
+    { line: 3, text: "  if i in Min-Subtree and k > D[j]: swap(D[i], D[j]); SwimMax(j)", match: ["min-subtree cross", "swap partner"] },
+    { line: 4, text: "  else if i in Min-Subtree: SwimMin(i, k)", match: ["swim-min", "min-subtree"] },
+    { line: 5, text: "  else if i in Max-Subtree and k < D[j]: swap(D[i], D[j]); SwimMin(j)", match: ["max-subtree cross"] },
+    { line: 6, text: "  else: SwimMax(i, k)", match: ["swim-max", "max-subtree"] }
+  ],
+  leftist: [
+    { line: 1, text: "function Leftist-Merge(h1, h2):", match: ["start", "merge"] },
+    { line: 2, text: "  if h1 == null: return h2; if h2 == null: return h1", match: ["base case", "null"] },
+    { line: 3, text: "  if h1.key > h2.key: swap(h1, h2)", match: ["root compare", "swap roots"] },
+    { line: 4, text: "  h1.right = Leftist-Merge(h1.right, h2)", match: ["right spine", "recurse"] },
+    { line: 5, text: "  if s(h1.left) < s(h1.right): swap(h1.left, h1.right)", match: ["s-value", "swap children", "leftist property"] },
+    { line: 6, text: "  h1.s = s(h1.right) + 1; return h1", match: ["update s", "return"] }
+  ],
+  skew: [
+    { line: 1, text: "function Skew-Merge(h1, h2):", match: ["start", "merge"] },
+    { line: 2, text: "  if h1 == null: return h2; if h2 == null: return h1", match: ["null", "base case"] },
+    { line: 3, text: "  if h1.key > h2.key: swap(h1, h2)", match: ["compare", "swap roots"] },
+    { line: 4, text: "  swap(h1.left, h1.right) // Unconditional swap", match: ["unconditional swap", "swap left right"] },
+    { line: 5, text: "  h1.left = Skew-Merge(h2, h1.left); return h1", match: ["recurse", "merge left"] }
+  ],
+  binomial: [
+    { line: 1, text: "function Binomial-Union(H1, H2):", match: ["start", "union"] },
+    { line: 2, text: "  H = MergeRootListsByDegree(H1, H2)", match: ["merge root list", "degree list"] },
+    { line: 3, text: "  for curr in H: if degree(curr) == degree(next):", match: ["equal degree", "carry"] },
+    { line: 4, text: "    Link smaller root as parent of larger root", match: ["link", "link trees", "binomial tree"] },
+    { line: 5, text: "function ExtractMin(H): remove min, reverse children, Union", match: ["extract", "delete min"] }
+  ],
+  lazybinomial: [
+    { line: 1, text: "function Lazy-Insert(H, k):", match: ["start", "lazy insert", "insert"] },
+    { line: 2, text: "  Add single B0 tree to root list in O(1) time", match: ["o(1)", "root list", "b0"] },
+    { line: 3, text: "function Lazy-ExtractMin(H):", match: ["extract", "delete min"] },
+    { line: 4, text: "  Remove min root; splice children into root list", match: ["remove min", "children"] },
+    { line: 5, text: "  Consolidate(): link equal degrees until all degrees unique", match: ["consolidat", "degree table", "link"] }
+  ],
+  fibonacci: [
+    { line: 1, text: "function Fib-Insert(H, k): add to root list in O(1)", match: ["insert", "o(1)"] },
+    { line: 2, text: "function Fib-ExtractMin(H): remove min, splice, Consolidate()", match: ["extract", "min"] },
+    { line: 3, text: "function Fib-DecreaseKey(H, x, k): x.key = k; if x < parent: Cut()", match: ["decrease-key", "key"] },
+    { line: 4, text: "function CascadingCut(H, y):", match: ["cascading cut", "mark"] },
+    { line: 5, text: "  if not y.mark: y.mark = true // First child lost", match: ["mark true", "first child"] },
+    { line: 6, text: "  else: Cut(y); CascadingCut(H, y.parent) // Second child lost", match: ["second child", "cut parent"] }
+  ]
+};
+
+function updateCodeTrace(step, index) {
+  if (!codeTraceContainer) return;
+  const trace = PSEUDOCODE_TRACES[currentStructure] || [];
+  if (trace.length === 0) {
+    codeTraceContainer.innerHTML = '<div style="padding:12px;color:var(--text-muted);">Trace not available.</div>';
+    return;
+  }
+
+  // Determine active line
+  let activeLineIndex = 0;
+  if (step) {
+    const textToMatch = `${step.title || ''} ${step.actionCategory || ''} ${step.reason || ''} ${step.action || ''}`.toLowerCase();
+    for (let i = 0; i < trace.length; i++) {
+      const lineObj = trace[i];
+      if (lineObj.match && lineObj.match.some(m => textToMatch.includes(m.toLowerCase()))) {
+        activeLineIndex = i;
+        break;
+      }
+    }
+  }
+
+  if (codeTraceTitle) {
+    codeTraceTitle.textContent = `${STRUCTURE_DEFS[currentStructure]?.name || ''} Trace`;
+  }
+  if (codeTraceBadge) {
+    codeTraceBadge.textContent = `Line ${trace[activeLineIndex]?.line || 1}`;
+  }
+
+  codeTraceContainer.innerHTML = '';
+  trace.forEach((lineObj, i) => {
+    const div = document.createElement('div');
+    div.className = `code-line ${i === activeLineIndex ? 'active' : ''}`;
+    div.innerHTML = `
+      <span class="code-line-num">${lineObj.line}</span>
+      <span class="code-line-text">${escapeHtml(lineObj.text)}</span>
+    `;
+    codeTraceContainer.appendChild(div);
+  });
+}
+
+// ==========================================================================
+// Topic Dropdown Menus Setup
+// ==========================================================================
+function setupTopicDropdowns() {
+  function closeAllDropdowns() {
+    dropdownTrees?.classList.remove('open');
+    dropdownHeaps?.classList.remove('open');
+    btnTopicTrees?.setAttribute('aria-expanded', 'false');
+    btnTopicHeaps?.setAttribute('aria-expanded', 'false');
+  }
+
+  btnTopicTrees?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = dropdownTrees?.classList.contains('open');
+    closeAllDropdowns();
+    if (!isOpen && dropdownTrees) {
+      dropdownTrees.classList.add('open');
+      btnTopicTrees?.setAttribute('aria-expanded', 'true');
+    }
+  });
+
+  btnTopicHeaps?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = dropdownHeaps?.classList.contains('open');
+    closeAllDropdowns();
+    if (!isOpen && dropdownHeaps) {
+      dropdownHeaps.classList.add('open');
+      btnTopicHeaps?.setAttribute('aria-expanded', 'true');
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.ds-dropdown')) {
+      closeAllDropdowns();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAllDropdowns();
+  });
+
+  dsMenuItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const ds = item.dataset.ds;
+      if (ds) {
+        switchDataStructure(ds);
+        closeAllDropdowns();
+      }
+    });
+  });
+}
+
+// ==========================================================================
+// Quiz Mode: Predict the Next Step
+// ==========================================================================
+let lastQuizStepIndex = -1;
+
+function setupQuizMode() {
+  btnQuizMode?.addEventListener('click', () => {
+    isQuizModeActive = !isQuizModeActive;
+    btnQuizMode.classList.toggle('active', isQuizModeActive);
+    showToast(isQuizModeActive ? '🎯 Quiz Mode ON: Practice predicting next operations!' : 'Quiz Mode OFF', 'info');
+  });
+
+  btnQuizClose?.addEventListener('click', () => {
+    if (quizModal) quizModal.style.display = 'none';
+  });
+
+  btnQuizContinue?.addEventListener('click', () => {
+    if (quizModal) quizModal.style.display = 'none';
+    controller.nextStep();
+  });
+}
+
+function checkAndTriggerQuiz(step, index) {
+  if (!step || index === lastQuizStepIndex) return;
+  // Trigger quiz on significant tree actions (rotations, swaps, splits, merges)
+  const isActionStep = ['swap', 'rotate', 'split', 'merge', 'cut', 'recolor'].includes(step.actionCategory);
+  if (!isActionStep) return;
+
+  lastQuizStepIndex = index;
+  controller.pause();
+
+  // Generate question and options
+  const question = `What operation is performed at this step in ${STRUCTURE_DEFS[currentStructure]?.name}?`;
+  const correctAnswer = step.title || 'Algorithmic transformation';
+  const distractorPool = [
+    "No change, invariant satisfied",
+    "Single Left-Left (LL) rotation",
+    "Single Right-Right (RR) rotation",
+    "Swap with left child",
+    "Promote median key upwards",
+    "Recolor parent and uncle to BLACK",
+    "Unconditional swap of left and right subtrees",
+    "Cascading cut to root list"
+  ].filter(d => d.toLowerCase() !== correctAnswer.toLowerCase());
+
+  // Pick 3 distractors + correct answer
+  const options = [correctAnswer];
+  while (options.length < 4 && distractorPool.length > 0) {
+    const randIdx = Math.floor(Math.random() * distractorPool.length);
+    options.push(distractorPool.splice(randIdx, 1)[0]);
+  }
+  options.sort(() => Math.random() - 0.5);
+
+  quizTotal++;
+  if (quizQuestionPrompt) quizQuestionPrompt.textContent = question;
+  if (quizQuestionBadge) quizQuestionBadge.textContent = `Question #${quizTotal}`;
+  if (quizOptionsList) quizOptionsList.innerHTML = '';
+  if (quizFeedback) quizFeedback.style.display = 'none';
+  if (btnQuizContinue) btnQuizContinue.style.display = 'none';
+  if (quizScoreBadge) quizScoreBadge.textContent = `Score: ${quizScore} / ${quizTotal - 1}`;
+
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt-btn';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => {
+      // Disable all options
+      if (quizOptionsList) {
+        quizOptionsList.querySelectorAll('.quiz-opt-btn').forEach(b => b.disabled = true);
+      }
+      const isCorrect = (opt === correctAnswer);
+      if (isCorrect) {
+        btn.classList.add('correct');
+        quizScore++;
+        if (quizFeedback) quizFeedback.className = 'quiz-feedback-box correct';
+        if (quizFeedbackTitle) quizFeedbackTitle.textContent = '🎉 Correct!';
+        if (quizFeedbackText) quizFeedbackText.textContent = step.reason || step.rule || 'Great job anticipating the algorithmic transformation!';
+      } else {
+        btn.classList.add('wrong');
+        if (quizFeedback) quizFeedback.className = 'quiz-feedback-box wrong';
+        if (quizFeedbackTitle) quizFeedbackTitle.textContent = '❌ Incorrect';
+        if (quizFeedbackText) quizFeedbackText.textContent = `The correct action was: "${correctAnswer}". Reason: ${step.reason || step.rule || ''}`;
+        if (quizOptionsList) {
+          quizOptionsList.querySelectorAll('.quiz-opt-btn').forEach(b => {
+            if (b.textContent === correctAnswer) b.classList.add('correct');
+          });
+        }
+      }
+      if (quizScoreBadge) quizScoreBadge.textContent = `Score: ${quizScore} / ${quizTotal}`;
+      if (quizFeedback) quizFeedback.style.display = 'block';
+      if (btnQuizContinue) btnQuizContinue.style.display = 'inline-flex';
+    });
+    if (quizOptionsList) quizOptionsList.appendChild(btn);
+  });
+
+  if (quizModal) quizModal.style.display = 'flex';
+}
+
+// ==========================================================================
+// Side-by-Side Algorithm Comparison Mode
+// ==========================================================================
+const BIG_O_COMPLEXITIES = {
+  btree: { search: "O(log n)", insert: "O(log n)", delete: "O(log n)", union: "O(n)", amortized: "O(1) split", invariant: "All leaves at uniform depth; node keys [⌈M/2⌉-1 .. M-1]" },
+  bplus: { search: "O(log n)", insert: "O(log n)", delete: "O(log n)", union: "O(n)", amortized: "O(1) leaf chain", invariant: "All records stored in linked leaves; internal nodes only route index" },
+  avl: { search: "O(log n)", insert: "O(log n)", delete: "O(log n)", union: "O(n)", amortized: "O(1) rotation", invariant: "Strict balance factor |h_L - h_R| ≤ 1 at every node" },
+  redblack: { search: "O(log n)", insert: "O(log n)", delete: "O(log n)", union: "O(n)", amortized: "O(1) recolor", invariant: "Root is black; no 2 consecutive reds; uniform black-height" },
+  splay: { search: "O(log n)*", insert: "O(log n)*", delete: "O(log n)*", union: "O(m log(n/m))", amortized: "O(log n) amortized", invariant: "Self-adjusting: accessed elements splayed to root via Zig/Zig-Zig/Zig-Zag" },
+  mway: { search: "O(M log_M n)", insert: "O(M log_M n)", delete: "O(M log_M n)", union: "O(n)", amortized: "N/A", invariant: "Multi-way search tree with up to M-1 keys and M subtrees" },
+  trie: { search: "O(L)", insert: "O(L)", delete: "O(L)", union: "O(n)", amortized: "O(L) per word", invariant: "Prefix tree where edges represent characters of words of length L" },
+  minheap: { search: "O(n)", insert: "O(log n)", delete: "O(log n)", union: "O(n)", amortized: "O(1) avg insert", invariant: "A[⌊i/2⌋] ≤ A[i]; complete binary tree array layout" },
+  maxheap: { search: "O(n)", insert: "O(log n)", delete: "O(log n)", union: "O(n)", amortized: "O(1) avg insert", invariant: "A[⌊i/2⌋] ≥ A[i]; complete binary tree array layout" },
+  deap: { search: "O(n)", insert: "O(log n)", delete: "O(log n)", union: "O(n)", amortized: "O(log n)", invariant: "Root empty; left is Min-Heap, right is Max-Heap, partners satisfy min ≤ max" },
+  leftist: { search: "O(n)", insert: "O(log n)", delete: "O(log n)", union: "O(log n)", amortized: "O(log n)", invariant: "s(left) ≥ s(right); right spine length ≤ ⌊log2(n+1)⌋" },
+  skew: { search: "O(n)", insert: "O(log n)*", delete: "O(log n)*", union: "O(log n)*", amortized: "O(log n) amortized", invariant: "Self-adjusting priority queue; unconditional left/right swap on right spine" },
+  binomial: { search: "O(n)", insert: "O(1)* / O(log n)", delete: "O(log n)", union: "O(log n)", amortized: "O(1) amortized insert", invariant: "Forest of binomial trees B_k with at most one tree per degree" },
+  lazybinomial: { search: "O(n)", insert: "O(1) worst", delete: "O(log n)*", union: "O(1)", amortized: "O(log n) extract-min", invariant: "Trees merged lazily into root list, consolidated during Extract-Min" },
+  fibonacci: { search: "O(n)", insert: "O(1) worst", delete: "O(log n)*", union: "O(1)", amortized: "O(1) insert/decrease-key", invariant: "Marked nodes; cascading cuts maintain max degree O(log n) for F_{k+2} size" }
+};
+
+function createFreshTree(dsKey) {
+  switch (dsKey) {
+    case 'btree': return new BTree(4);
+    case 'bplus': return new BPlusTree(4);
+    case 'avl': return new AVLTree();
+    case 'redblack': return new RedBlackTree();
+    case 'splay': return new SplayTree();
+    case 'mway': return new MWayTree(4);
+    case 'trie': return new Trie();
+    case 'minheap': return new MinHeap();
+    case 'maxheap': return new MaxHeap();
+    case 'deap': return new Deap();
+    case 'leftist': return new LeftistHeap();
+    case 'skew': return new SkewHeap();
+    case 'binomial': return new BinomialHeap();
+    case 'lazybinomial': return new LazyBinomialHeap();
+    case 'fibonacci': return new FibonacciHeap();
+    default: return new MinHeap();
+  }
+}
+
+function setupCompareMode() {
+  btnCompare?.addEventListener('click', () => {
+    if (compareModal) {
+      compareModal.style.display = 'flex';
+      runComparison();
+    }
+  });
+
+  btnCompareClose?.addEventListener('click', () => {
+    if (compareModal) compareModal.style.display = 'none';
+  });
+
+  btnCompareDone?.addEventListener('click', () => {
+    if (compareModal) compareModal.style.display = 'none';
+  });
+
+  btnRunCompare?.addEventListener('click', runComparison);
+}
+
+function runComparison() {
+  const typeA = compareSelectA ? compareSelectA.value : 'avl';
+  const typeB = compareSelectB ? compareSelectB.value : 'redblack';
+  const rawInput = compareInputKeys ? compareInputKeys.value : '40, 20, 60, 10, 30, 50, 70';
+  const keys = rawInput.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+
+  const treeA = createFreshTree(typeA);
+  const treeB = createFreshTree(typeB);
+
+  let stepsA = 0;
+  let stepsB = 0;
+
+  for (const k of keys) {
+    const resA = treeA.insert(k);
+    stepsA += Array.isArray(resA) ? resA.length : (resA?.steps?.length || 1);
+    const resB = treeB.insert(k);
+    stepsB += Array.isArray(resB) ? resB.length : (resB?.steps?.length || 1);
+  }
+
+  const statsA = treeA.getStats ? treeA.getStats() : {};
+  const statsB = treeB.getStats ? treeB.getStats() : {};
+  const nameA = STRUCTURE_DEFS[typeA]?.name || typeA;
+  const nameB = STRUCTURE_DEFS[typeB]?.name || typeB;
+
+  if (compareHeaderA) compareHeaderA.textContent = `Structure A: ${nameA}`;
+  if (compareHeaderB) compareHeaderB.textContent = `Structure B: ${nameB}`;
+  if (compareThA) compareThA.textContent = nameA;
+  if (compareThB) compareThB.textContent = nameB;
+
+  if (compareMetricsA) {
+    compareMetricsA.innerHTML = `
+      <div class="compare-metric-row"><span>Keys Inserted:</span> <strong>${keys.length}</strong></div>
+      <div class="compare-metric-row"><span>Total Operations / Steps:</span> <strong>${stepsA} ops</strong></div>
+      <div class="compare-metric-row"><span>Resulting Height / Depth:</span> <strong>${statsA.height ?? statsA.levels ?? 'N/A'}</strong></div>
+      <div class="compare-metric-row"><span>Total Nodes:</span> <strong>${statsA.totalNodes ?? statsA.totalKeys ?? keys.length}</strong></div>
+    `;
+  }
+
+  if (compareMetricsB) {
+    compareMetricsB.innerHTML = `
+      <div class="compare-metric-row"><span>Keys Inserted:</span> <strong>${keys.length}</strong></div>
+      <div class="compare-metric-row"><span>Total Operations / Steps:</span> <strong>${stepsB} ops</strong></div>
+      <div class="compare-metric-row"><span>Resulting Height / Depth:</span> <strong>${statsB.height ?? statsB.levels ?? 'N/A'}</strong></div>
+      <div class="compare-metric-row"><span>Total Nodes:</span> <strong>${statsB.totalNodes ?? statsB.totalKeys ?? keys.length}</strong></div>
+    `;
+  }
+
+  const bigOA = BIG_O_COMPLEXITIES[typeA] || {};
+  const bigOB = BIG_O_COMPLEXITIES[typeB] || {};
+
+  if (compareTableBody) {
+    compareTableBody.innerHTML = `
+      <tr><td>Search / Find-Min</td><td><code>${bigOA.search || 'O(log n)'}</code></td><td><code>${bigOB.search || 'O(log n)'}</code></td></tr>
+      <tr><td>Insert (Worst-Case)</td><td><code>${bigOA.insert || 'O(log n)'}</code></td><td><code>${bigOB.insert || 'O(log n)'}</code></td></tr>
+      <tr><td>Delete / Extract-Min</td><td><code>${bigOA.delete || 'O(log n)'}</code></td><td><code>${bigOB.delete || 'O(log n)'}</code></td></tr>
+      <tr><td>Union / Merge</td><td><code>${bigOA.union || 'O(n)'}</code></td><td><code>${bigOB.union || 'O(n)'}</code></td></tr>
+      <tr><td>Amortized Characteristic</td><td>${bigOA.amortized || 'N/A'}</td><td>${bigOB.amortized || 'N/A'}</td></tr>
+      <tr><td>Structural Invariant</td><td><small>${bigOA.invariant || ''}</small></td><td><small>${bigOB.invariant || ''}</small></td></tr>
+    `;
+  }
+}
+
+// ==========================================================================
+// Printable Exam Study Sheet Generator
+// ==========================================================================
+function setupExamExport() {
+  btnExportExam?.addEventListener('click', () => {
+    generateExamStudySheet();
+    if (exportModal) exportModal.style.display = 'flex';
+  });
+
+  btnExportClose?.addEventListener('click', () => {
+    if (exportModal) exportModal.style.display = 'none';
+  });
+
+  btnExportModalDone?.addEventListener('click', () => {
+    if (exportModal) exportModal.style.display = 'none';
+  });
+
+  btnPrintSheet?.addEventListener('click', () => {
+    window.print();
+  });
+}
+
+function generateExamStudySheet() {
+  if (!printableExamSheet) return;
+  const def = STRUCTURE_DEFS[currentStructure] || {};
+  const bigO = BIG_O_COMPLEXITIES[currentStructure] || {};
+  const activeTree = getActiveTree();
+  const stats = activeTree.getStats ? activeTree.getStats() : {};
+
+  printableExamSheet.innerHTML = `
+    <div class="exam-section">
+      <div class="exam-section-title">📘 ${def.title} — End-Semester Exam Cheatsheet</div>
+      <p style="color:var(--text-secondary); margin-bottom: 8px;">${def.sub}</p>
+      <div><strong>Core Invariant:</strong> ${bigO.invariant || 'Standard structural invariant.'}</div>
+    </div>
+
+    <div class="exam-section">
+      <div class="exam-section-title">⏱️ Asymptotic Time Complexity Table</div>
+      <table class="exam-table">
+        <thead>
+          <tr>
+            <th>Operation</th>
+            <th>Worst-Case Complexity</th>
+            <th>Amortized / Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Find / Search</td><td><code>${bigO.search || 'O(log n)'}</code></td><td>${currentStructure.includes('heap') ? 'O(1) for root min/max' : 'Strict bound'}</td></tr>
+          <tr><td>Insert</td><td><code>${bigO.insert || 'O(log n)'}</code></td><td>${bigO.amortized || 'N/A'}</td></tr>
+          <tr><td>Delete / Extract</td><td><code>${bigO.delete || 'O(log n)'}</code></td><td>Restores heap/tree invariant</td></tr>
+          <tr><td>Union / Merge</td><td><code>${bigO.union || 'O(n)'}</code></td><td>${currentStructure === 'fibonacci' || currentStructure === 'lazybinomial' ? 'O(1) pointer concatenation' : 'Spine or list union'}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="exam-section">
+      <div class="exam-section-title">💡 Textbook Rules & Exam Pitfalls</div>
+      <div>${def.rulesHtml}</div>
+    </div>
+
+    <div class="exam-section">
+      <div class="exam-section-title">📊 Current Session Snapshot</div>
+      <div style="display:flex; gap: 20px; font-family: var(--font-mono); font-size: 0.85rem;">
+        <div>Total Keys: <strong>${stats.totalKeys ?? stats.totalWords ?? 0}</strong></div>
+        <div>Height: <strong>${stats.height ?? stats.levels ?? 0}</strong></div>
+        <div>Nodes: <strong>${stats.totalNodes ?? stats.totalKeys ?? 0}</strong></div>
+      </div>
+    </div>
+  `;
+}
+
+// ==========================================================================
 // Setup Event Listeners
 // ==========================================================================
 function setupEventListeners() {
@@ -1818,6 +2511,14 @@ function setupEventListeners() {
       switchDataStructure(ds);
     });
   });
+
+  // 1b. Topic Dropdowns
+  setupTopicDropdowns();
+
+  // 1c. Tool Modals (Quiz, Compare, Exam Export)
+  setupQuizMode();
+  setupCompareMode();
+  setupExamExport();
 
   // Mobile sidebar toggle
   if (btnToggleSidebar) {

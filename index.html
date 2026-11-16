@@ -13,73 +13,158 @@
   <div class="app-container">
     <!-- Top Data Structure Navigation Bar -->
     <nav class="ds-nav-bar" id="dsNavBar" aria-label="Data Structure Suite">
-      <div class="ds-nav-items">
-        <button class="ds-tab-btn active" data-ds="btree" title="B-Tree (Order M / 2-3-4 Tree Visualizer)">
-          <span class="ds-icon">🌳</span>
-          <span class="ds-label">B-Tree</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="bplus" title="B+ Tree with Sequential Leaf Chaining">
-          <span class="ds-icon">📑</span>
-          <span class="ds-label">B+ Tree</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="avl" title="AVL Tree (Self-Balancing BST with Rotations)">
-          <span class="ds-icon">⚖️</span>
-          <span class="ds-label">AVL Tree</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="redblack" title="Red-Black Tree (Self-Balancing BST with Color Properties)">
-          <span class="ds-icon">🔴</span>
-          <span class="ds-label">Red-Black</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="splay" title="Splay Tree (Self-Adjusting BST via Splaying)">
-          <span class="ds-icon">🚀</span>
-          <span class="ds-label">Splay Tree</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="mway" title="Multi-Way (M-Way) Search Tree">
-          <span class="ds-icon">🌿</span>
-          <span class="ds-label">M-Way Tree</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="trie" title="Trie (Prefix Tree for Strings & Words)">
-          <span class="ds-icon">🔤</span>
-          <span class="ds-label">Trie</span>
-        </button>
+      <div class="ds-nav-topics">
+        <!-- Topic 1: Trees Dropdown -->
+        <div class="ds-dropdown" id="dropdownTrees">
+          <button class="ds-topic-btn active" id="btnTopicTrees" type="button" aria-haspopup="true" aria-expanded="false" title="Explore Tree Data Structures">
+            <span class="topic-icon">🌳</span>
+            <span class="topic-name">Trees:</span>
+            <span class="topic-active-ds" id="activeTreeLabel">B-Tree</span>
+            <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="ds-dropdown-menu" id="menuTrees" role="menu">
+            <div class="dropdown-header">Search & Multi-Way Trees</div>
+            <button class="ds-menu-item active" data-ds="btree" role="menuitem">
+              <span class="ds-icon">🌳</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">B-Tree</span>
+                <span class="menu-item-desc">Order M / 2-3-4 balanced multi-way tree</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="bplus" role="menuitem">
+              <span class="ds-icon">📑</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">B+ Tree</span>
+                <span class="menu-item-desc">Sequential leaf chaining & index routing</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="avl" role="menuitem">
+              <span class="ds-icon">⚖️</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">AVL Tree</span>
+                <span class="menu-item-desc">Self-balancing BST with LL, RR, LR, RL rotations</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="redblack" role="menuitem">
+              <span class="ds-icon">🔴</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">Red-Black Tree</span>
+                <span class="menu-item-desc">Color properties & double-red / double-black repairs</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="splay" role="menuitem">
+              <span class="ds-icon">🚀</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">Splay Tree</span>
+                <span class="menu-item-desc">Self-adjusting BST via Zig, Zig-Zig, Zig-Zag</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="mway" role="menuitem">
+              <span class="ds-icon">🌿</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">M-Way Tree</span>
+                <span class="menu-item-desc">Multi-way search tree with Order M branching</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="trie" role="menuitem">
+              <span class="ds-icon">🔤</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">Trie</span>
+                <span class="menu-item-desc">Prefix tree for words & character sequences</span>
+              </div>
+            </button>
+          </div>
+        </div>
 
-        <div class="ds-nav-divider"></div>
-        <span class="ds-nav-badge">Unit-2 Heaps</span>
-
-        <button class="ds-tab-btn" data-ds="minheap" title="Binary Min-Heap (Swim / Sink Operations)">
-          <span class="ds-icon">🔻</span>
-          <span class="ds-label">Min Heap</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="maxheap" title="Binary Max-Heap (Swim / Sink Operations)">
-          <span class="ds-icon">🔺</span>
-          <span class="ds-label">Max Heap</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="deap" title="Deap (Double-Ended Priority Queue with Min/Max Subtrees)">
-          <span class="ds-icon">🔄</span>
-          <span class="ds-label">Deap</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="leftist" title="Leftist Heap (Null Path Length / s-value Priority Queue)">
-          <span class="ds-icon">📐</span>
-          <span class="ds-label">Leftist Heap</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="skew" title="Skew Heap (Self-Adjusting Priority Queue via Unconditional Swaps)">
-          <span class="ds-icon">🔀</span>
-          <span class="ds-label">Skew Heap</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="binomial" title="Binomial Heap (Forest of Binomial Trees with Union Carry)">
-          <span class="ds-icon">🌲</span>
-          <span class="ds-label">Binomial Heap</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="lazybinomial" title="Lazy Binomial Heap (O(1) Lazy Insert with Deferred Consolidation)">
-          <span class="ds-icon">⏳</span>
-          <span class="ds-label">Lazy Binomial</span>
-        </button>
-        <button class="ds-tab-btn" data-ds="fibonacci" title="Fibonacci Heap (Amortized O(1) Priority Queue with Cascading Cuts)">
-          <span class="ds-icon">🌀</span>
-          <span class="ds-label">Fibonacci Heap</span>
-        </button>
+        <!-- Topic 2: Heaps Dropdown -->
+        <div class="ds-dropdown" id="dropdownHeaps">
+          <button class="ds-topic-btn" id="btnTopicHeaps" type="button" aria-haspopup="true" aria-expanded="false" title="Explore Unit-2 Heaps & Priority Queues">
+            <span class="topic-icon">🔻</span>
+            <span class="topic-name">Unit-2 Heaps:</span>
+            <span class="topic-active-ds" id="activeHeapLabel">Select Heap...</span>
+            <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="ds-dropdown-menu" id="menuHeaps" role="menu">
+            <div class="dropdown-header">Priority Queues & Heaps</div>
+            <button class="ds-menu-item" data-ds="minheap" role="menuitem">
+              <span class="ds-icon">🔻</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">Min Heap</span>
+                <span class="menu-item-desc">Binary min-heap with swim & sink heapify</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="maxheap" role="menuitem">
+              <span class="ds-icon">🔺</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">Max Heap</span>
+                <span class="menu-item-desc">Binary max-heap with swim & sink heapify</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="deap" role="menuitem">
+              <span class="ds-icon">🔄</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">Deap (DEPQ)</span>
+                <span class="menu-item-desc">Dual Min/Max subtrees with correspondence</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="leftist" role="menuitem">
+              <span class="ds-icon">📐</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">Leftist Heap</span>
+                <span class="menu-item-desc">Null path length (s-value) right-spine merging</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="skew" role="menuitem">
+              <span class="ds-icon">🔀</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">Skew Heap</span>
+                <span class="menu-item-desc">Self-adjusting amortized priority queue</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="binomial" role="menuitem">
+              <span class="ds-icon">🌲</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">Binomial Heap</span>
+                <span class="menu-item-desc">Forest of binomial trees with carry union</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="lazybinomial" role="menuitem">
+              <span class="ds-icon">⏳</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">Lazy Binomial</span>
+                <span class="menu-item-desc">O(1) lazy insert with deferred consolidation</span>
+              </div>
+            </button>
+            <button class="ds-menu-item" data-ds="fibonacci" role="menuitem">
+              <span class="ds-icon">🌀</span>
+              <div class="menu-item-text">
+                <span class="menu-item-title">Fibonacci Heap</span>
+                <span class="menu-item-desc">Marked nodes, cascading cuts & consolidation</span>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
+
       <div class="ds-nav-right">
+        <!-- Practice Quiz Mode Toggle -->
+        <button id="btnQuizMode" class="btn btn-secondary btn-sm nav-tool-btn" title="Toggle Interactive Predict-the-Next-Step Practice Mode">
+          <span class="nav-tool-icon">🎯</span>
+          <span class="nav-tool-text">Quiz Mode</span>
+        </button>
+
+        <!-- Side-by-Side Comparison -->
+        <button id="btnCompare" class="btn btn-secondary btn-sm nav-tool-btn" title="Compare Two Algorithms Side-by-Side">
+          <span class="nav-tool-icon">⚖️</span>
+          <span class="nav-tool-text">Compare</span>
+        </button>
+
+        <!-- Export Printable Exam Sheet -->
+        <button id="btnExportExam" class="btn btn-secondary btn-sm nav-tool-btn" title="Generate Printable Exam Study Sheet">
+          <span class="nav-tool-icon">📄</span>
+          <span class="nav-tool-text">Exam Sheet</span>
+        </button>
+
         <button id="btnToggleSidebar" class="btn btn-secondary btn-sm toggle-sidebar-btn" title="Toggle Information Panel">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
           <span class="sidebar-toggle-text">Panel</span>
@@ -151,6 +236,7 @@
 
       <!-- Stats Ribbon (Fixed with white-space: nowrap) -->
       <div class="stats-ribbon" id="statsRibbon">
+        <div class="stat-chip" id="chipOps" title="Comparisons and pointer updates performed in this operation"><span>Work:</span> <strong id="statWork">0 ops</strong></div>
         <div class="stat-chip" id="chipKeys" title="Total number of keys/records"><span id="statLabelKeys">Keys:</span> <strong id="statKeys">0</strong></div>
         <div class="stat-chip" id="chipNodes" title="Total number of nodes"><span id="statLabelNodes">Nodes:</span> <strong id="statNodes">0</strong></div>
         <div class="stat-chip" id="chipHeight" title="Current tree height/depth"><span id="statLabelHeight">Height:</span> <strong id="statHeight">0</strong></div>
@@ -241,6 +327,15 @@
     <main class="main-content">
       <!-- Canvas Viewport -->
       <div id="canvasViewport" class="canvas-viewport">
+        <!-- Heap Array Representation Strip (Dual View) -->
+        <div id="heapArrayStrip" class="heap-array-strip no-pan" style="display: none;">
+          <div class="array-strip-header">
+            <span class="array-strip-title">📊 Array Representation (A[1..N])</span>
+            <span class="array-strip-sub" id="arrayStripFormula">Parent: ⌊i/2⌋ &bull; Left: 2i &bull; Right: 2i+1</span>
+          </div>
+          <div class="array-cells-container" id="arrayCellsContainer"></div>
+        </div>
+
         <!-- Edit Mode Top Banner -->
         <div id="editModeBanner" class="edit-mode-banner no-pan" style="display: none;">
           <div class="edit-banner-info">
@@ -291,8 +386,9 @@
         <!-- Sidebar Navigation Tabs -->
         <div class="sidebar-tabs">
           <button class="sidebar-tab-btn active" data-pane="explanation">Step Narration</button>
+          <button class="sidebar-tab-btn" data-pane="code">Code Trace</button>
           <button class="sidebar-tab-btn" data-pane="history">Step History</button>
-          <button class="sidebar-tab-btn" data-pane="rules">Order (M) Rules</button>
+          <button class="sidebar-tab-btn" data-pane="rules">Rules</button>
         </div>
 
         <!-- Pane 1: Step Narration / Explanation -->
@@ -325,7 +421,20 @@
           </div>
         </div>
 
-        <!-- Pane 2: Step History Log -->
+        <!-- Pane 2: Synchronized Pseudocode / Algorithm Trace -->
+        <div id="paneCode" class="sidebar-pane">
+          <div class="code-trace-card">
+            <div class="code-trace-header">
+              <span class="code-trace-title" id="codeTraceTitle">Algorithm Trace</span>
+              <span class="code-trace-badge" id="codeTraceBadge">Step 0</span>
+            </div>
+            <div class="code-trace-container" id="codeTraceContainer">
+              <!-- Dynamically populated pseudocode lines -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Pane 3: Step History Log -->
         <div id="paneHistory" class="sidebar-pane">
           <div class="history-list" id="historyList"></div>
         </div>
@@ -415,6 +524,162 @@
     </footer>
 
     <div id="toastContainer" class="toast-container"></div>
+  </div>
+
+  <!-- Quiz Mode / Predict-the-Next-Step Modal -->
+  <div id="quizModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">🎯</span>
+          <div>
+            <h3 class="modal-title">Exam Practice: Predict the Next Step</h3>
+            <div class="modal-sub">Analyze the tree state before continuing</div>
+          </div>
+        </div>
+        <button id="btnQuizClose" class="modal-close-btn" title="Exit Quiz Mode">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="quiz-question-box">
+          <div class="quiz-badge" id="quizQuestionBadge">Question</div>
+          <p class="quiz-prompt" id="quizQuestionPrompt">What operation will happen next?</p>
+        </div>
+        <div class="quiz-options-list" id="quizOptionsList">
+          <!-- Populated dynamically -->
+        </div>
+        <div id="quizFeedback" class="quiz-feedback-box" style="display: none;">
+          <div id="quizFeedbackTitle" class="quiz-feedback-title"></div>
+          <div id="quizFeedbackText" class="quiz-feedback-text"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="quiz-score-badge" id="quizScoreBadge">Score: 0 / 0</div>
+        <button id="btnQuizContinue" class="btn btn-primary" style="display: none;">Continue Step &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Side-by-Side Comparison Modal -->
+  <div id="compareModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog modal-dialog-lg">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">⚖️</span>
+          <div>
+            <h3 class="modal-title">Side-by-Side Algorithm Comparison</h3>
+            <div class="modal-sub">Run identical operations and compare operations, tree shapes & complexity</div>
+          </div>
+        </div>
+        <button id="btnCompareClose" class="modal-close-btn" title="Close Comparison">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="compare-config-bar">
+          <div class="compare-selector-group">
+            <label class="config-label">Structure A:</label>
+            <select id="compareSelectA" class="select-input">
+              <optgroup label="Trees">
+                <option value="btree">B-Tree</option>
+                <option value="bplus">B+ Tree</option>
+                <option value="avl" selected>AVL Tree</option>
+                <option value="redblack">Red-Black Tree</option>
+                <option value="splay">Splay Tree</option>
+              </optgroup>
+              <optgroup label="Unit-2 Heaps">
+                <option value="minheap">Min Heap</option>
+                <option value="leftist">Leftist Heap</option>
+                <option value="skew">Skew Heap</option>
+                <option value="binomial">Binomial Heap</option>
+                <option value="fibonacci">Fibonacci Heap</option>
+              </optgroup>
+            </select>
+          </div>
+          <span class="compare-vs-badge">VS</span>
+          <div class="compare-selector-group">
+            <label class="config-label">Structure B:</label>
+            <select id="compareSelectB" class="select-input">
+              <optgroup label="Trees">
+                <option value="btree">B-Tree</option>
+                <option value="bplus">B+ Tree</option>
+                <option value="avl">AVL Tree</option>
+                <option value="redblack" selected>Red-Black Tree</option>
+                <option value="splay">Splay Tree</option>
+              </optgroup>
+              <optgroup label="Unit-2 Heaps">
+                <option value="minheap">Min Heap</option>
+                <option value="leftist">Leftist Heap</option>
+                <option value="skew">Skew Heap</option>
+                <option value="binomial">Binomial Heap</option>
+                <option value="fibonacci">Fibonacci Heap</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="compare-input-group">
+            <label class="config-label">Input Keys:</label>
+            <input type="text" id="compareInputKeys" class="text-input" value="40, 20, 60, 10, 30, 50, 70" placeholder="Comma-separated keys">
+          </div>
+          <button id="btnRunCompare" class="btn btn-primary btn-sm">Run Comparison</button>
+        </div>
+
+        <div class="compare-results-grid" id="compareResultsGrid">
+          <div class="compare-card" id="compareCardA">
+            <div class="compare-card-header" id="compareHeaderA">Structure A</div>
+            <div class="compare-metrics" id="compareMetricsA"></div>
+          </div>
+          <div class="compare-card" id="compareCardB">
+            <div class="compare-card-header" id="compareHeaderB">Structure B</div>
+            <div class="compare-metrics" id="compareMetricsB"></div>
+          </div>
+        </div>
+
+        <div class="compare-table-container">
+          <table class="compare-matrix-table" id="compareMatrixTable">
+            <thead>
+              <tr>
+                <th>Property / Operation</th>
+                <th id="compareThA">Structure A</th>
+                <th id="compareThB">Structure B</th>
+              </tr>
+            </thead>
+            <tbody id="compareTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnCompareDone" class="btn btn-secondary">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Printable Exam Study Sheet Modal -->
+  <div id="exportModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog modal-dialog-lg">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">📄</span>
+          <div>
+            <h3 class="modal-title">Exam Study Sheet Generator</h3>
+            <div class="modal-sub">Revision summary, invariants, Big-O table & current step walkthrough</div>
+          </div>
+        </div>
+        <button id="btnExportClose" class="modal-close-btn" title="Close Study Sheet">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="exam-sheet-actions">
+          <button id="btnPrintSheet" class="btn btn-primary btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Print / Save as PDF
+          </button>
+        </div>
+        <div class="printable-exam-sheet" id="printableExamSheet">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnExportModalDone" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="app.js"></script>

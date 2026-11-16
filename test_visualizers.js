@@ -270,4 +270,18 @@ assert.strictEqual(fib.minNode.key, 2, "Decreased key 46 -> 2 must become new mi
 assert(fib.validateInvariants().every(inv => inv.valid), "Invariants hold");
 console.log("✓ FibonacciHeap passed.\n");
 
+// === Test 9: Dual View Array Serialization Verification ===
+console.log("=== Test 9: Dual View Array Serialization ===");
+const testMin = new MinHeap();
+[10, 20, 5, 30].forEach(k => testMin.insert(k));
+assert.strictEqual(testMin.heap[0], 5, "Min heap root at index 0 must be 5 (displayed as index 1 in UI)");
+assert.strictEqual(testMin.heap.length, 4, "Heap array length must be 4");
+
+const testDeap = new Deap();
+[10, 5, 25, 4, 30].forEach(k => testDeap.insert(k));
+assert(testDeap.deap.length >= 6, "Deap array must store items starting at index 2");
+assert(testDeap._isMinSubtree(2), "Index 2 must be in Min subtree");
+assert(!testDeap._isMinSubtree(3), "Index 3 must be in Max subtree");
+console.log("✓ Dual View Array representation verified.\n");
+
 console.log("🎉 ALL TESTS PASSED SUCCESSFULLY! (All 15 Data Structures Green)");

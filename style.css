@@ -1849,6 +1849,117 @@ body {
   border: 1px solid #fbcfe8;
 }
 
+/* ==========================================================================
+   Unit-2 Heaps Badges & Styles
+   ========================================================================== */
+.heap-badge-chip {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.chip-min {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.chip-max {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
+.chip-leftist {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.deap-root-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px dashed #cbd5e1;
+}
+
+.node-deap-root {
+  border-style: dashed !important;
+  opacity: 0.85;
+}
+
+.node-deap-min {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
+}
+
+.node-deap-max {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2);
+}
+
+.node-fib-marked {
+  border-color: #f59e0b !important;
+  background: #fffbeb !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+}
+
+.fib-marked-chip {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+
+.tag-min-root {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.forest-root-link {
+  fill: none;
+  stroke: #6366f1;
+  stroke-width: 2.2;
+  stroke-dasharray: 4 3;
+  opacity: 0.8;
+}
+
+.ds-nav-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-strong);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.ds-nav-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .tag-splay {
   background: #eff6ff;
   color: #1d4ed8;

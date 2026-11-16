@@ -3,13 +3,24 @@ import { BPlusTree, resetBPlusNodeIdCounter } from './bplus_tree.js';
 import { MWayTree, resetMWayNodeIdCounter } from './mway_tree.js';
 import { AVLTree, RedBlackTree, SplayTree, resetBSTNodeIdCounter } from './bst_trees.js';
 import { Trie, resetTrieNodeIdCounter } from './trie.js';
+import {
+  MinHeap,
+  MaxHeap,
+  Deap,
+  LeftistHeap,
+  SkewHeap,
+  BinomialHeap,
+  LazyBinomialHeap,
+  FibonacciHeap,
+  resetHeapNodeIdCounter
+} from './heaps.js';
 import { BTreeRenderer } from './renderer.js';
 import { AnimationController } from './controller.js';
 
 // ==========================================================================
 // Application State & Multi-Data Structure Registry
 // ==========================================================================
-let currentStructure = 'btree'; // 'btree' | 'bplus' | 'avl' | 'redblack' | 'splay' | 'mway' | 'trie'
+let currentStructure = 'btree';
 
 const trees = {
   btree: new BTree(4),
@@ -18,14 +29,24 @@ const trees = {
   redblack: new RedBlackTree(),
   splay: new SplayTree(),
   mway: new MWayTree(4),
-  trie: new Trie()
+  trie: new Trie(),
+  minheap: new MinHeap(),
+  maxheap: new MaxHeap(),
+  deap: new Deap(),
+  leftist: new LeftistHeap(),
+  skew: new SkewHeap(),
+  binomial: new BinomialHeap(),
+  lazybinomial: new LazyBinomialHeap(),
+  fibonacci: new FibonacciHeap()
 };
 
 const undoStacks = {
-  btree: [], bplus: [], avl: [], redblack: [], splay: [], mway: [], trie: []
+  btree: [], bplus: [], avl: [], redblack: [], splay: [], mway: [], trie: [],
+  minheap: [], maxheap: [], deap: [], leftist: [], skew: [], binomial: [], lazybinomial: [], fibonacci: []
 };
 const redoStacks = {
-  btree: [], bplus: [], avl: [], redblack: [], splay: [], mway: [], trie: []
+  btree: [], bplus: [], avl: [], redblack: [], splay: [], mway: [], trie: [],
+  minheap: [], maxheap: [], deap: [], leftist: [], skew: [], binomial: [], lazybinomial: [], fibonacci: []
 };
 
 let renderer = null;
@@ -455,6 +476,324 @@ const STRUCTURE_DEFS = {
         </ul>
       </div>
     `
+  },
+  minheap: {
+    name: 'Min Heap',
+    logo: 'MIN',
+    title: 'Binary Min-Heap Visualizer',
+    sub: 'Complete Binary Tree & Heapify-Up (Swim) / Heapify-Down (Sink)',
+    showOrder: false,
+    showStrategy: false,
+    allowManualEdit: false,
+    isTextual: false,
+    singlePlaceholder: 'e.g. 42',
+    batchPlaceholder: 'e.g. 30, 10, 20, 5, 12, 40, 8, 25',
+    presets: [
+      { id: 'min_clrs', label: 'CLRS Example: 16, 14, 10, 8, 7, 9, 3, 2, 4, 1' },
+      { id: 'min_swims', label: 'Heapify-Up Showcase: 50, 40, 30, 20, 10, 5' },
+      { id: 'min_random10', label: 'Random 10 Elements' }
+    ],
+    rulesHtml: `
+      <div class="rule-block">
+        <h4>Binary Min-Heap Invariant</h4>
+        <ul>
+          <li><strong>Min-Heap Order Property:</strong> For every node <code>i</code> other than root, <code>key(parent(i)) ≤ key(i)</code>. The root holds the global minimum.</li>
+          <li><strong>Complete Binary Tree Shape:</strong> Every level except possibly the last is completely filled; the last level is filled sequentially from left to right.</li>
+          <li><strong>1-Based Array Indexing Formulas:</strong>
+            <ul>
+              <li><code>Parent(i) = ⌊i / 2⌋</code></li>
+              <li><code>LeftChild(i) = 2i</code></li>
+              <li><code>RightChild(i) = 2i + 1</code></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h4>Core Operations</h4>
+        <ul>
+          <li><strong>Insert(x) - O(log n):</strong> Place <code>x</code> at index <code>N + 1</code> (next leaf). Heapify-Up (Swim): compare with parent; if <code>x &lt; parent</code>, swap with parent. Repeat up to root.</li>
+          <li><strong>Extract-Min() - O(log n):</strong> Remove root element (minimum). Replace root with last element at index <code>N</code>. Heapify-Down (Sink): compare with children; swap with the smaller child until heap property is restored.</li>
+        </ul>
+      </div>
+    `
+  },
+  maxheap: {
+    name: 'Max Heap',
+    logo: 'MAX',
+    title: 'Binary Max-Heap Visualizer',
+    sub: 'Complete Binary Tree & Heapify-Up (Swim) / Heapify-Down (Sink)',
+    showOrder: false,
+    showStrategy: false,
+    allowManualEdit: false,
+    isTextual: false,
+    singlePlaceholder: 'e.g. 42',
+    batchPlaceholder: 'e.g. 10, 50, 30, 20, 60, 15, 45, 70',
+    presets: [
+      { id: 'max_demo', label: 'CLRS Build-Max-Heap: 4, 1, 3, 2, 16, 9, 10, 14, 8, 7' },
+      { id: 'max_ascending', label: 'Ascending Input (Max Swims): 10, 20, 30, 40, 50, 60' },
+      { id: 'max_random10', label: 'Random 10 Elements' }
+    ],
+    rulesHtml: `
+      <div class="rule-block">
+        <h4>Binary Max-Heap Invariant</h4>
+        <ul>
+          <li><strong>Max-Heap Order Property:</strong> For every node <code>i</code> other than root, <code>key(parent(i)) ≥ key(i)</code>. The root holds the global maximum.</li>
+          <li><strong>Complete Binary Tree Shape:</strong> All levels except possibly the last are full; leaves at last level are populated left-to-right.</li>
+          <li><strong>Array Formulas:</strong> <code>Parent = ⌊i/2⌋</code>, <code>Left = 2i</code>, <code>Right = 2i + 1</code>.</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h4>Core Operations</h4>
+        <ul>
+          <li><strong>Insert(x) - O(log n):</strong> Place <code>x</code> at next available leaf (index <code>N + 1</code>). Heapify-Up (Swim): if <code>x &gt; parent</code>, swap with parent until invariant holds.</li>
+          <li><strong>Extract-Max() - O(log n):</strong> Remove root (maximum). Move last leaf to root position. Heapify-Down (Sink): swap with the larger child until invariant holds.</li>
+        </ul>
+      </div>
+    `
+  },
+  deap: {
+    name: 'Deap (DEPQ)',
+    logo: 'DP',
+    title: 'Deap (Double-Ended Priority Queue) Visualizer',
+    sub: 'Dual Min-Heap & Max-Heap Subtrees with Dual Correspondence',
+    showOrder: false,
+    showStrategy: false,
+    allowManualEdit: false,
+    isTextual: false,
+    singlePlaceholder: 'e.g. 42',
+    batchPlaceholder: 'e.g. 10, 5, 25, 4, 30, 8, 40, 2, 50, 15, 45',
+    presets: [
+      { id: 'deap_sahni', label: 'Horowitz & Sahni: 10, 5, 25, 4, 30, 8, 40, 2, 50, 15, 45' },
+      { id: 'deap_minmax', label: 'Alternating Min/Max: 5, 95, 12, 88, 20, 80, 25, 75' }
+    ],
+    rulesHtml: `
+      <div class="rule-block">
+        <h4>Deap (Double-Ended Priority Queue) Definition</h4>
+        <ul>
+          <li><strong>Structure:</strong> A complete binary tree where the <strong>root (index 1) contains no element</strong>.</li>
+          <li><strong>Left Subtree (Root = index 2):</strong> Is a <strong>Min-Heap</strong>.</li>
+          <li><strong>Right Subtree (Root = index 3):</strong> Is a <strong>Max-Heap</strong>.</li>
+          <li><strong>Dual Correspondence Property:</strong> For any node <code>i</code> in the min-heap subtree, let <code>j</code> be its corresponding partner in the max-heap:
+            <code>j = i + 2^(⌊log2(i)⌋ - 1)</code>.
+            If <code>j</code> does not exist (j &gt; n), then <code>j = ⌊j / 2⌋</code>.
+            <strong>Invariant: <code>deap[i] ≤ deap[j]</code> must hold at all times!</strong>
+          </li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h4>Deap Insertion Algorithm</h4>
+        <ol>
+          <li>Place key <code>x</code> temporarily at the new position <code>n + 1</code>.</li>
+          <li>If position is in Min-Heap: compare <code>x</code> with its partner <code>j</code> in Max-Heap. If <code>x &gt; deap[j]</code>, swap <code>x</code> with <code>deap[j]</code> and bubble up in Max-Heap; otherwise bubble up in Min-Heap.</li>
+          <li>If position is in Max-Heap: compare <code>x</code> with its partner <code>i</code> in Min-Heap. If <code>x &lt; deap[i]</code>, swap <code>x</code> with <code>deap[i]</code> and bubble up in Min-Heap; otherwise bubble up in Max-Heap.</li>
+        </ol>
+      </div>
+      <div class="rule-block">
+        <h4>Delete-Min & Delete-Max</h4>
+        <ul>
+          <li><strong>Delete-Min:</strong> Remove minimum from index 2. Move last element to position 2 and filter down in Min-Heap, checking cross-correspondence with Max-Heap at leaf.</li>
+          <li><strong>Delete-Max:</strong> Remove maximum from index 3. Move last element to position 3 and filter down in Max-Heap, checking cross-correspondence with Min-Heap at leaf.</li>
+        </ul>
+      </div>
+    `
+  },
+  leftist: {
+    name: 'Leftist Heap',
+    logo: 'LH',
+    title: 'Leftist Heap Visualizer',
+    sub: 'Null Path Length (s-value) Priority Queue & Right-Spine Merging',
+    showOrder: false,
+    showStrategy: false,
+    allowManualEdit: false,
+    isTextual: false,
+    singlePlaceholder: 'e.g. 42',
+    batchPlaceholder: 'e.g. 15, 10, 25, 5, 30, 8, 40, 12',
+    presets: [
+      { id: 'leftist_demo', label: 'Textbook Merge Sequence: 15, 10, 25, 5, 30, 8, 40, 12' },
+      { id: 'leftist_swaps', label: 'Subtree Swaps Demo: 20, 15, 10, 8, 5, 2' }
+    ],
+    rulesHtml: `
+      <div class="rule-block">
+        <h4>Null Path Length (s-value / rank)</h4>
+        <ul>
+          <li><code>s(null) = 0</code></li>
+          <li>For any node <code>x</code>: <code>s(x) = 1 + min(s(x.left), s(x.right))</code></li>
+          <li><strong>Leftist Property:</strong> For every node <code>x</code>: <code>s(x.left) ≥ s(x.right)</code>.</li>
+          <li><strong>Right Spine Bound:</strong> The shortest path to an external node is along the right spine, with length at most <code>⌊log2(n + 1)⌋</code>.</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h4>The Fundamental Merge(H1, H2) Operation</h4>
+        <ol>
+          <li>If either heap is null, return the other.</li>
+          <li>Make <code>H1</code> the heap with smaller root key (<code>H1.key ≤ H2.key</code>).</li>
+          <li>Recursively merge <code>H1.right</code> with <code>H2</code>: <code>H1.right = merge(H1.right, H2)</code>.</li>
+          <li>Check Leftist Invariant: If <code>s(H1.left) &lt; s(H1.right)</code>, <strong>swap left and right children!</strong></li>
+          <li>Update: <code>s(H1) = 1 + s(H1.right)</code>.</li>
+        </ol>
+      </div>
+      <div class="rule-block">
+        <h4>Insert & Extract-Min via Merge</h4>
+        <ul>
+          <li><strong>Insert(x):</strong> <code>merge(H, new Node(x))</code> - runs in <code>O(log n)</code>.</li>
+          <li><strong>Extract-Min():</strong> Remove root, return <code>merge(root.left, root.right)</code> - runs in <code>O(log n)</code>.</li>
+        </ul>
+      </div>
+    `
+  },
+  skew: {
+    name: 'Skew Heap',
+    logo: 'SK',
+    title: 'Skew Heap Visualizer',
+    sub: 'Self-Adjusting Priority Queue via Unconditional Swaps',
+    showOrder: false,
+    showStrategy: false,
+    allowManualEdit: false,
+    isTextual: false,
+    singlePlaceholder: 'e.g. 42',
+    batchPlaceholder: 'e.g. 20, 10, 40, 5, 15, 30, 8, 25',
+    presets: [
+      { id: 'skew_demo', label: 'Amortized Swaps: 20, 10, 40, 5, 15, 30, 8, 25' },
+      { id: 'skew_seq', label: 'Sequential Insert: 10, 20, 30, 40, 50, 60' }
+    ],
+    rulesHtml: `
+      <div class="rule-block">
+        <h4>Skew Heap Self-Adjusting Principles</h4>
+        <ul>
+          <li>Self-adjusting version of Leftist Heaps (Sleator & Tarjan).</li>
+          <li><strong>No s-values or ranks stored</strong> in nodes.</li>
+          <li><strong>Amortized O(log n) time</strong> per operation.</li>
+          <li>Guarantees efficiency over sequences of operations without balancing tags.</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h4>Unconditional Swap Merge(H1, H2)</h4>
+        <ol>
+          <li>Compare root keys; ensure <code>H1.key ≤ H2.key</code>.</li>
+          <li>Recursively merge <code>H1.right</code> with <code>H2</code>.</li>
+          <li><strong>Unconditional Swap:</strong> Without checking any ranks, swap left and right subtrees!
+            <code>H1.left = merge(H1.right, H2)</code>, <code>H1.right = old_H1.left</code>.</li>
+        </ol>
+      </div>
+    `
+  },
+  binomial: {
+    name: 'Binomial Heap',
+    logo: 'BH',
+    title: 'Binomial Heap Visualizer',
+    sub: 'Forest of Binomial Trees {B0, B1, ...} with Union Carries',
+    showOrder: false,
+    showStrategy: false,
+    allowManualEdit: false,
+    isTextual: false,
+    singlePlaceholder: 'e.g. 42',
+    batchPlaceholder: 'e.g. 12, 7, 25, 15, 28, 33, 41, 1',
+    presets: [
+      { id: 'binom_8keys', label: 'Full B3 Tree (8 keys): 12, 7, 25, 15, 28, 33, 41, 1' },
+      { id: 'binom_carries', label: 'Union Carries Demo: 10, 20, 5, 40, 15, 30, 8' },
+      { id: 'binom_clrs', label: 'CLRS Chapter 19 Dataset (13 keys)' }
+    ],
+    rulesHtml: `
+      <div class="rule-block">
+        <h4>Binomial Tree B_k Properties</h4>
+        <ul>
+          <li><code>B_0</code> is a single node.</li>
+          <li>Tree <code>B_k</code> has <code>2^k</code> nodes and height <code>k</code>.</li>
+          <li>Root of <code>B_k</code> has degree <code>k</code> with children <code>B_{k-1}, B_{k-2}, ..., B_0</code>.</li>
+          <li>Contains exactly <code>(k choose i)</code> nodes at depth <code>i</code> (Binomial coefficients).</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h4>Binomial Heap Properties</h4>
+        <ul>
+          <li>Collection of min-heap ordered Binomial Trees.</li>
+          <li><strong>Uniqueness:</strong> Contains at most one <code>B_k</code> of any degree <code>k</code>.</li>
+          <li>Degrees present correspond directly to the <strong>binary representation of n</strong>!</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h4>Union & Extract-Min Workflow</h4>
+        <ul>
+          <li><strong>Union(H1, H2):</strong> Merge root lists by degree. Link adjacent trees of equal degree <code>k</code> (making smaller root parent of larger root, forming <code>B_{k+1}</code>). Handles carries just like binary arithmetic!</li>
+          <li><strong>Extract-Min():</strong> Find minimum among tree roots. Remove it; reverse its children into a new Binomial Heap; Union with remaining trees.</li>
+        </ul>
+      </div>
+    `
+  },
+  lazybinomial: {
+    name: 'Lazy Binomial',
+    logo: 'LBH',
+    title: 'Lazy Binomial Heap Visualizer',
+    sub: 'O(1) Lazy Insertion with Deferred Consolidation on Extract-Min',
+    showOrder: false,
+    showStrategy: false,
+    allowManualEdit: false,
+    isTextual: false,
+    singlePlaceholder: 'e.g. 42',
+    batchPlaceholder: 'e.g. 10, 20, 5, 40, 15, 30, 8',
+    presets: [
+      { id: 'lazy_insert_demo', label: 'Lazy Root List: 10, 20, 5, 40, 15, 30, 8' },
+      { id: 'lazy_extract_demo', label: 'Extract-Min Consolidation Demo' }
+    ],
+    rulesHtml: `
+      <div class="rule-block">
+        <h4>Lazy Evaluation Paradigm</h4>
+        <ul>
+          <li>In standard Binomial Heaps, union and insert eagerly combine trees ($O(\log n)$ worst-case).</li>
+          <li><strong>Lazy Binomial Heap:</strong> Inserts simply prepend a new $B_0$ tree to the root list in <strong>O(1) worst-case time</strong>!</li>
+          <li>Multiple trees of the same degree are allowed in the unconsolidated root list.</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h4>Deferred Consolidation on Extract-Min</h4>
+        <ol>
+          <li>Find and remove the root with the global minimum key.</li>
+          <li>Add all its children to the root list.</li>
+          <li><strong>Consolidation Pass:</strong> Scan all roots and use an array table of degrees. Whenever two roots share degree <code>d</code>, link them into a tree of degree <code>d + 1</code>. Repeat until all degrees are distinct.</li>
+        </ol>
+      </div>
+    `
+  },
+  fibonacci: {
+    name: 'Fibonacci Heap',
+    logo: 'FH',
+    title: 'Fibonacci Heap Visualizer',
+    sub: 'Amortized O(1) Priority Queue with Cascading Cuts & Marked Nodes',
+    showOrder: false,
+    showStrategy: false,
+    allowManualEdit: false,
+    isTextual: false,
+    singlePlaceholder: 'e.g. 42',
+    batchPlaceholder: 'e.g. 23, 7, 3, 17, 24, 18, 52, 38, 30, 26, 46',
+    presets: [
+      { id: 'fib_clrs', label: 'CLRS Showcase: 23, 7, 3, 17, 24, 18, 52, 38, 30, 26, 46' },
+      { id: 'fib_decrease', label: 'Cascading Cut Demo (Decrease-Key)' }
+    ],
+    rulesHtml: `
+      <div class="rule-block">
+        <h4>Fibonacci Heap Complexity Bounds</h4>
+        <ul>
+          <li><strong>Insert:</strong> <code>O(1)</code> actual time</li>
+          <li><strong>Union:</strong> <code>O(1)</code> actual time</li>
+          <li><strong>Decrease-Key:</strong> <code>O(1)</code> amortized time (used in Dijkstra / Prim)</li>
+          <li><strong>Extract-Min:</strong> <code>O(log n)</code> amortized time</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h4>The Marked Node Rule & Cascading Cuts</h4>
+        <ul>
+          <li>Roots are never marked.</li>
+          <li>A non-root node becomes <strong>marked (●)</strong> when it loses its <em>first</em> child while under its current parent.</li>
+          <li>If a marked node loses a <em>second</em> child: it is immediately <strong>cut</strong> from its parent and moved to the root list, unmarking it, and triggering a <strong>Cascading Cut</strong> recursively up its ancestor chain!</li>
+          <li>This invariant guarantees that a tree of degree <code>k</code> has at least <code>F_{k+2}</code> nodes (Fibonacci numbers), bounding maximum degree to <code>O(log n)</code>.</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h4>Extract-Min & Consolidation</h4>
+        <p>Removes minimum root, adds its children to root list, and links equal-degree roots using a degree table until all degrees are unique.</p>
+      </div>
+    `
+  }
   }
 };
 
@@ -502,6 +841,20 @@ function switchDataStructure(dsKey, notify = true) {
   // Update Input Fields & Placeholders
   singleInput.type = 'text';
   updateInputPlaceholders();
+
+  // Update Delete/Extract button label
+  if (btnDeleteSingle) {
+    if (dsKey === 'maxheap') {
+      btnDeleteSingle.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg> Extract Max`;
+      btnDeleteSingle.title = "Extract maximum key (or enter a key to delete)";
+    } else if (['minheap', 'deap', 'leftist', 'skew', 'binomial', 'lazybinomial', 'fibonacci'].includes(dsKey)) {
+      btnDeleteSingle.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg> Extract Min`;
+      btnDeleteSingle.title = "Extract minimum key (or enter a key to delete)";
+    } else {
+      btnDeleteSingle.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg> Delete`;
+      btnDeleteSingle.title = "Delete key";
+    }
+  }
 
   // Update Preset Dropdown
   presetSelect.innerHTML = '<option value="" disabled selected>Load Example...</option>';
@@ -662,6 +1015,14 @@ function loadSavedTreeState(dsKey) {
     if (dsKey === 'splay') return SplayTree.fromJSON(data);
     if (dsKey === 'mway') return MWayTree.fromJSON(data);
     if (dsKey === 'trie') return Trie.fromJSON(data);
+    if (dsKey === 'minheap') return MinHeap.fromJSON(data);
+    if (dsKey === 'maxheap') return MaxHeap.fromJSON(data);
+    if (dsKey === 'deap') return Deap.fromJSON(data);
+    if (dsKey === 'leftist') return LeftistHeap.fromJSON(data);
+    if (dsKey === 'skew') return SkewHeap.fromJSON(data);
+    if (dsKey === 'binomial') return BinomialHeap.fromJSON(data);
+    if (dsKey === 'lazybinomial') return LazyBinomialHeap.fromJSON(data);
+    if (dsKey === 'fibonacci') return FibonacciHeap.fromJSON(data);
     return null;
   } catch (err) {
     console.error("Error loading saved state for " + dsKey, err);
@@ -752,6 +1113,22 @@ function restoreTreeFromJSON(data) {
     if (orderSelect) orderSelect.value = String(trees.mway.M);
   } else if (currentStructure === 'trie') {
     trees.trie = Trie.fromJSON(data);
+  } else if (currentStructure === 'minheap') {
+    trees.minheap = MinHeap.fromJSON(data);
+  } else if (currentStructure === 'maxheap') {
+    trees.maxheap = MaxHeap.fromJSON(data);
+  } else if (currentStructure === 'deap') {
+    trees.deap = Deap.fromJSON(data);
+  } else if (currentStructure === 'leftist') {
+    trees.leftist = LeftistHeap.fromJSON(data);
+  } else if (currentStructure === 'skew') {
+    trees.skew = SkewHeap.fromJSON(data);
+  } else if (currentStructure === 'binomial') {
+    trees.binomial = BinomialHeap.fromJSON(data);
+  } else if (currentStructure === 'lazybinomial') {
+    trees.lazybinomial = LazyBinomialHeap.fromJSON(data);
+  } else if (currentStructure === 'fibonacci') {
+    trees.fibonacci = FibonacciHeap.fromJSON(data);
   }
 }
 
@@ -807,6 +1184,46 @@ function updateTreeStats() {
     statExtra1.textContent = 'Prefix Map';
     statLabelExtra2.textContent = 'Lookup:';
     statExtra2.textContent = 'O(Word Length)';
+  } else if (currentStructure === 'minheap') {
+    statLabelExtra1.textContent = 'Min Key:';
+    statExtra1.textContent = stats.minKeys !== undefined ? stats.minKeys : 'None';
+    statLabelExtra2.textContent = 'Property:';
+    statExtra2.textContent = 'Parent ≤ Children';
+  } else if (currentStructure === 'maxheap') {
+    statLabelExtra1.textContent = 'Max Key:';
+    statExtra1.textContent = stats.maxKeys !== undefined ? stats.maxKeys : 'None';
+    statLabelExtra2.textContent = 'Property:';
+    statExtra2.textContent = 'Parent ≥ Children';
+  } else if (currentStructure === 'deap') {
+    statLabelExtra1.textContent = 'Min Root:';
+    statExtra1.textContent = stats.minKeys !== undefined ? stats.minKeys : 'None';
+    statLabelExtra2.textContent = 'Max Root:';
+    statExtra2.textContent = stats.maxKeys !== undefined ? stats.maxKeys : 'None';
+  } else if (currentStructure === 'leftist') {
+    statLabelExtra1.textContent = 'Min Root:';
+    statExtra1.textContent = stats.minKeys !== undefined ? stats.minKeys : 'None';
+    statLabelExtra2.textContent = 'Root s-val:';
+    statExtra2.textContent = stats.height !== undefined ? stats.height : '0';
+  } else if (currentStructure === 'skew') {
+    statLabelExtra1.textContent = 'Min Root:';
+    statExtra1.textContent = stats.minKeys !== undefined ? stats.minKeys : 'None';
+    statLabelExtra2.textContent = 'Type:';
+    statExtra2.textContent = 'Self-Adjusting';
+  } else if (currentStructure === 'binomial') {
+    statLabelExtra1.textContent = 'Min Root:';
+    statExtra1.textContent = stats.minKeys !== undefined ? stats.minKeys : 'None';
+    statLabelExtra2.textContent = 'Max Degree:';
+    statExtra2.textContent = `B_${stats.maxKeys || 0}`;
+  } else if (currentStructure === 'lazybinomial') {
+    statLabelExtra1.textContent = 'Min Root:';
+    statExtra1.textContent = stats.minKeys !== undefined ? stats.minKeys : 'None';
+    statLabelExtra2.textContent = 'Root Trees:';
+    statExtra2.textContent = `${stats.maxKeys || 0} roots`;
+  } else if (currentStructure === 'fibonacci') {
+    statLabelExtra1.textContent = 'Min Pointer:';
+    statExtra1.textContent = stats.minKeys !== undefined ? stats.minKeys : 'None';
+    statLabelExtra2.textContent = 'Root Trees:';
+    statExtra2.textContent = `${stats.height || 0} roots`;
   }
 }
 
@@ -996,7 +1413,22 @@ function executeSingleInsert() {
 
 function executeSingleDelete() {
   const raw = singleInput.value.trim();
+  const isHeap = ['minheap', 'maxheap', 'deap', 'leftist', 'skew', 'binomial', 'lazybinomial', 'fibonacci'].includes(currentStructure);
+
   if (!raw) {
+    if (isHeap) {
+      pushUndoState();
+      const tree = getActiveTree();
+      const res = tree.extractMin ? tree.extractMin() : (tree.extractMax ? tree.extractMax() : tree.delete());
+      const steps = Array.isArray(res) ? res : (res && res.steps ? res.steps : []);
+      updateTreeStats();
+      buildHistoryList(steps);
+      controller.loadSteps(steps, true);
+      saveTreeState(false);
+      const actionName = (currentStructure === 'maxheap') ? 'Extract-Max' : 'Extract-Min';
+      showToast(`${actionName} executed`, 'info');
+      return;
+    }
     showToast('Please enter a value to delete', 'error');
     singleInput.focus();
     return;
@@ -1143,6 +1575,22 @@ function handleSampleArray() {
     batchInput.value = '10, 20, 30, 40, 50, 25';
   } else if (currentStructure === 'redblack') {
     batchInput.value = '10, 20, 30, 15, 25, 5, 1';
+  } else if (currentStructure === 'minheap') {
+    batchInput.value = '30, 10, 20, 5, 12, 40, 8, 25';
+  } else if (currentStructure === 'maxheap') {
+    batchInput.value = '10, 50, 30, 20, 60, 15, 45, 70';
+  } else if (currentStructure === 'deap') {
+    batchInput.value = '10, 5, 25, 4, 30, 8, 40, 2, 50, 15, 45';
+  } else if (currentStructure === 'leftist') {
+    batchInput.value = '15, 10, 25, 5, 30, 8, 40, 12';
+  } else if (currentStructure === 'skew') {
+    batchInput.value = '20, 10, 40, 5, 15, 30, 8, 25';
+  } else if (currentStructure === 'binomial') {
+    batchInput.value = '12, 7, 25, 15, 28, 33, 41, 1';
+  } else if (currentStructure === 'lazybinomial') {
+    batchInput.value = '10, 20, 5, 40, 15, 30, 8';
+  } else if (currentStructure === 'fibonacci') {
+    batchInput.value = '23, 7, 3, 17, 24, 18, 52, 38, 30, 26, 46';
   } else {
     batchInput.value = '50, 30, 70, 20, 40';
   }
@@ -1210,6 +1658,33 @@ function handlePresetChange(e) {
   } else if (currentStructure === 'trie') {
     if (preset === 'trie_words') keysToInsert = ['tea', 'ted', 'ten', 'to', 'in', 'inn'];
     else keysToInsert = ['apple', 'app', 'application', 'bat', 'ball'];
+  } else if (currentStructure === 'minheap') {
+    if (preset === 'min_clrs') keysToInsert = [16, 14, 10, 8, 7, 9, 3, 2, 4, 1];
+    else if (preset === 'min_swims') keysToInsert = [50, 40, 30, 20, 10, 5];
+    else keysToInsert = [45, 23, 12, 67, 8, 19, 34, 5, 89, 15];
+  } else if (currentStructure === 'maxheap') {
+    if (preset === 'max_demo') keysToInsert = [4, 1, 3, 2, 16, 9, 10, 14, 8, 7];
+    else if (preset === 'max_ascending') keysToInsert = [10, 20, 30, 40, 50, 60];
+    else keysToInsert = [12, 85, 34, 91, 5, 47, 63, 28, 74, 52];
+  } else if (currentStructure === 'deap') {
+    if (preset === 'deap_sahni') keysToInsert = [10, 5, 25, 4, 30, 8, 40, 2, 50, 15, 45];
+    else keysToInsert = [5, 95, 12, 88, 20, 80, 25, 75];
+  } else if (currentStructure === 'leftist') {
+    if (preset === 'leftist_demo') keysToInsert = [15, 10, 25, 5, 30, 8, 40, 12];
+    else keysToInsert = [20, 15, 10, 8, 5, 2];
+  } else if (currentStructure === 'skew') {
+    if (preset === 'skew_demo') keysToInsert = [20, 10, 40, 5, 15, 30, 8, 25];
+    else keysToInsert = [10, 20, 30, 40, 50, 60];
+  } else if (currentStructure === 'binomial') {
+    if (preset === 'binom_8keys') keysToInsert = [12, 7, 25, 15, 28, 33, 41, 1];
+    else if (preset === 'binom_carries') keysToInsert = [10, 20, 5, 40, 15, 30, 8];
+    else keysToInsert = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130];
+  } else if (currentStructure === 'lazybinomial') {
+    if (preset === 'lazy_insert_demo') keysToInsert = [10, 20, 5, 40, 15, 30, 8];
+    else keysToInsert = [15, 8, 22, 4, 19, 31, 12, 7];
+  } else if (currentStructure === 'fibonacci') {
+    if (preset === 'fib_clrs') keysToInsert = [23, 7, 3, 17, 24, 18, 52, 38, 30, 26, 46];
+    else keysToInsert = [10, 20, 30, 40, 50, 5, 15];
   }
 
   const allSteps = [];

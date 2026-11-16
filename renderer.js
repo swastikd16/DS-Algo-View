@@ -116,6 +116,23 @@ export class BTreeRenderer {
   }
 
   getTreeBounds(node) {
+    if (node.isForest) {
+      const validChildren = (node.children || []).filter(Boolean);
+      if (validChildren.length === 0) return { minX: 0, maxX: 100, minY: 0, maxY: 100 };
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      const traverse = (n) => {
+        if (!n) return;
+        if (n._x < minX) minX = n._x;
+        if (n._x + n._nodeWidth > maxX) maxX = n._x + n._nodeWidth;
+        if (n._y < minY) minY = n._y;
+        if (n._y + this.keyHeight > maxY) maxY = n._y + this.keyHeight;
+        const valid = (n.children || []).filter(Boolean);
+        for (const child of valid) traverse(child);
+      };
+      validChildren.forEach(traverse);
+      return { minX, maxX, minY, maxY };
+    }
+
     let minX = node._x;
     let maxX = node._x + node._nodeWidth;
     let minY = node._y;
@@ -147,6 +164,19 @@ export class BTreeRenderer {
     const currentLevelGap = this.isEditMode ? 120 : this.levelGap;
 
     const computeWidths = (node) => {
+      if (node.isForest) {
+        const validChildren = (node.children || []).filter(Boolean);
+        let totalChildWidth = 0;
+        for (let i = 0; i < validChildren.length; i++) {
+          computeWidths(validChildren[i]);
+          totalChildWidth += validChildren[i]._subtreeWidth;
+        }
+        totalChildWidth += Math.max(0, validChildren.length - 1) * (this.siblingGap + 24);
+        node._subtreeWidth = Math.max(60, totalChildWidth);
+        node._nodeWidth = 0;
+        return;
+      }
+
       const keysCount = Math.max((node.keys || []).length, 1);
       node._nodeWidth = Math.max(keysCount * this.keyWidth + this.nodePadding * 2 + extraEditW, this.isEditMode ? 90 : 60);
 
@@ -165,6 +195,19 @@ export class BTreeRenderer {
     };
 
     const assignCoordinates = (node, leftX, depth) => {
+      if (node.isForest) {
+        node._x = leftX;
+        node._y = 40;
+        const validChildren = (node.children || []).filter(Boolean);
+        let currentChildLeft = leftX;
+        for (let i = 0; i < validChildren.length; i++) {
+          const child = validChildren[i];
+          assignCoordinates(child, currentChildLeft, 0);
+          currentChildLeft += child._subtreeWidth + this.siblingGap + 24;
+        }
+        return;
+      }
+
       node._y = depth * currentLevelGap + 40;
       const validChildren = (node.children || []).filter(Boolean);
 
@@ -306,7 +349,28 @@ export class BTreeRenderer {
   }
 
   drawConnectors(node, highlightNodeIds) {
-    if (!node || node.isLeaf) return;
+    if (!node) return;
+    if (node.isForest) {
+      const validRoots = (node.children || []).filter(Boolean);
+      for (let i = 0; i < validRoots.length - 1; i++) {
+        const r1 = validRoots[i];
+        const r2 = validRoots[i + 1];
+        const sx = r1._x + r1._nodeWidth + 2;
+        const sy = r1._y + (this.keyHeight / 2);
+        const ex = r2._x - 6;
+        const ey = r2._y + (this.keyHeight / 2);
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${sx} ${sy} L ${ex} ${ey}`);
+        path.setAttribute('class', 'forest-root-link');
+        this.svg.appendChild(path);
+      }
+      for (const child of validRoots) {
+        this.drawConnectors(child, highlightNodeIds);
+      }
+      return;
+    }
+    if (node.isLeaf) return;
     const validChildren = (node.children || []).filter(Boolean);
     if (validChildren.length === 0) return;
 
@@ -390,6 +454,13 @@ export class BTreeRenderer {
 
   drawNodes(node, highlightNodeIds, highlightKeyIndices, statusType, actionCategory, meta) {
     if (!node) return;
+    if (node.isForest) {
+      const validChildren = (node.children || []).filter(Boolean);
+      for (const child of validChildren) {
+        this.drawNodes(child, highlightNodeIds, highlightKeyIndices, statusType, actionCategory, meta);
+      }
+      return;
+    }
 
     const nodeEl = document.createElement('div');
     nodeEl.className = 'btree-node';
@@ -449,6 +520,26 @@ export class BTreeRenderer {
       nodeEl.classList.add('node-rb-red');
     } else if (node.color === 'BLACK') {
       nodeEl.classList.add('node-rb-black');
+    }
+
+    if (node.isMinRoot) {
+      nodeEl.classList.add('node-min-root');
+      const minTag = document.createElement('div');
+      minTag.className = 'node-action-tag tag-min-root';
+      minTag.innerHTML = `<span>★ Min Root</span>`;
+      nodeEl.appendChild(minTag);
+    }
+
+    if (node.isDeapRoot) {
+      nodeEl.classList.add('node-deap-root');
+    } else if (node.heapSide === 'min') {
+      nodeEl.classList.add('node-deap-min');
+    } else if (node.heapSide === 'max') {
+      nodeEl.classList.add('node-deap-max');
+    }
+
+    if (node.marked) {
+      nodeEl.classList.add('node-fib-marked');
     }
 
     // Action banner for specific operations
@@ -590,6 +681,18 @@ export class BTreeRenderer {
       nodeMeta.innerHTML = node.isEndOfWord 
         ? `<span class="trie-word-chip">✓ Word</span>` 
         : `<span class="trie-prefix-chip">prefix</span>`;
+    } else if (node.isDeapRoot) {
+      nodeMeta.innerHTML = `<span class="deap-root-chip">Empty Root</span>`;
+    } else if (node.heapSide) {
+      const isMin = node.heapSide === 'min';
+      nodeMeta.innerHTML = `<span class="heap-badge-chip ${isMin ? 'chip-min' : 'chip-max'}">${isMin ? 'Min-Heap' : 'Max-Heap'}</span> &bull; [${node.heapIndex}]`;
+    } else if (node.sValue !== undefined && node.degree === undefined && !node.heapIndex) {
+      nodeMeta.innerHTML = `<span class="heap-badge-chip chip-leftist">s = ${node.sValue}</span>`;
+    } else if (node.degree !== undefined) {
+      const markTag = node.marked ? ` &bull; <span class="fib-marked-chip">● Marked</span>` : '';
+      nodeMeta.innerHTML = `<span class="heap-badge-chip">deg: ${node.degree}</span>${markTag}`;
+    } else if (node.heapIndex !== undefined) {
+      nodeMeta.innerHTML = `<span class="heap-badge-chip">idx: [${node.heapIndex}]</span>`;
     } else {
       nodeMeta.textContent = node.isLeaf ? 'Leaf' : `Node (${node.keys.length})`;
     }

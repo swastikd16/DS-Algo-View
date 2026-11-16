@@ -15,14 +15,24 @@ An interactive, animated visualizer and learning platform for complex tree data 
 
 ## ✨ Key Features
 
-- **7 Tree Visualizers**:
-  - **B-Tree** (with toggle for Cormen/CLRS Top-Down vs Standard Bottom-Up deletion)
-  - **B+ Tree** (index & data leaves with sequential pointers)
-  - **AVL Tree** (self-balancing with rotation tracking)
-  - **Red-Black Tree** (color balancing, rotations, and invariant checks)
-  - **Splay Tree** (self-adjusting access rotations)
-  - **M-Way Search Tree** (multi-key node branching)
-  - **Trie** (prefix tree word autocomplete)
+- **15 Data Structure Visualizers**:
+  - **Tree Structures**:
+    - **B-Tree** (with toggle for Cormen/CLRS Top-Down vs Standard Bottom-Up deletion)
+    - **B+ Tree** (index & data leaves with sequential pointers)
+    - **AVL Tree** (self-balancing with rotation tracking)
+    - **Red-Black Tree** (color balancing, rotations, and invariant checks)
+    - **Splay Tree** (self-adjusting access rotations)
+    - **M-Way Search Tree** (multi-key node branching)
+    - **Trie** (prefix tree word autocomplete)
+  - **Unit-2 Heaps (Advanced Priority Queues)**:
+    - **Min Heap** (Complete binary tree, swim/sink heapify, 1-based indexing)
+    - **Max Heap** (Complete binary tree, swim/sink heapify, 1-based indexing)
+    - **Deap (Double-Ended Priority Queue)** (Min-Heap & Max-Heap subtrees, dual correspondence)
+    - **Leftist Heap** (Null path length / s-values, right-spine merging, subtree swaps)
+    - **Skew Heap** (Self-adjusting amortized priority queue, unconditional swaps)
+    - **Binomial Heap** (Forest of Binomial Trees $B_k$, degree linking, union with carries)
+    - **Lazy Binomial Heap** ($O(1)$ lazy insertion, deferred degree consolidation on extract-min)
+    - **Fibonacci Heap** (Amortized $O(1)$ priority queue, marked nodes, cascading cuts)
 
 - **Beginner-Friendly Narration**: Every step provides clear, plain-English explanations breaking down *What We're Doing*, *The Rule*, and an *Analogy*.
 - **Interactive Scrubber & Speed Controls**: Play, pause, step forward/backward, or jump to any step in the operation history.

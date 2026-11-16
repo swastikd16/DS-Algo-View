@@ -65,6 +65,7 @@ const orderSelect = document.getElementById('orderSelect');
 const strategyConfigGroup = document.getElementById('strategyConfigGroup');
 const strategySelect = document.getElementById('strategySelect');
 const btnStratCLRS = document.getElementById('btnStratCLRS');
+const btnStratReactive = document.getElementById('btnStratReactive');
 const presetSelect = document.getElementById('presetSelect');
 const keyTypeConfigGroup = document.getElementById('keyTypeConfigGroup');
 const btnKeyTypeNum = document.getElementById('btnKeyTypeNum');
@@ -793,7 +794,6 @@ const STRUCTURE_DEFS = {
         <p>Removes minimum root, adds its children to root list, and links equal-degree roots using a degree table until all degrees are unique.</p>
       </div>
     `
-  }
   }
 };
 

@@ -214,6 +214,28 @@ const btnExportModalDone = document.getElementById('btnExportModalDone');
 const btnPrintSheet = document.getElementById('btnPrintSheet');
 const printableExamSheet = document.getElementById('printableExamSheet');
 
+// AI Tutor Elements
+const btnNavAskAi = document.getElementById('btnNavAskAi');
+const paneAi = document.getElementById('paneAi');
+const aiModelSelect = document.getElementById('aiModelSelect');
+const aiCustomModelInput = document.getElementById('aiCustomModelInput');
+const aiKeyStatusBadge = document.getElementById('aiKeyStatusBadge');
+const aiStatusDot = document.getElementById('aiStatusDot');
+const aiStatusText = document.getElementById('aiStatusText');
+const aiKeyInputSection = document.getElementById('aiKeyInputSection');
+const aiKeySavedSection = document.getElementById('aiKeySavedSection');
+const aiApiKeyInput = document.getElementById('aiApiKeyInput');
+const btnToggleKeyVisibility = document.getElementById('btnToggleKeyVisibility');
+const btnSaveApiKey = document.getElementById('btnSaveApiKey');
+const btnChangeApiKey = document.getElementById('btnChangeApiKey');
+const btnClearApiKey = document.getElementById('btnClearApiKey');
+const aiChatContainer = document.getElementById('aiChatContainer');
+const aiQuickChips = document.getElementById('aiQuickChips');
+const aiChatForm = document.getElementById('aiChatForm');
+const aiChatInput = document.getElementById('aiChatInput');
+const btnAiSend = document.getElementById('btnAiSend');
+const btnAiClearChat = document.getElementById('btnAiClearChat');
+
 // ==========================================================================
 // Data Structure Metadata & Definitions
 // ==========================================================================
@@ -2501,6 +2523,424 @@ function generateExamStudySheet() {
 }
 
 // ==========================================================================
+// AI Tutor Chatbot Integration (Google Gemini API with Real-Time Context)
+// ==========================================================================
+let aiConversationHistory = [];
+
+function getStoredApiKey() {
+  try {
+    return localStorage.getItem('dsa_gemini_api_key') || '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function setStoredApiKey(key) {
+  try {
+    localStorage.setItem('dsa_gemini_api_key', key.trim());
+  } catch (_) {}
+}
+
+function removeStoredApiKey() {
+  try {
+    localStorage.removeItem('dsa_gemini_api_key');
+  } catch (_) {}
+}
+
+function getStoredModel() {
+  try {
+    return localStorage.getItem('dsa_gemini_model') || 'gemini-2.5-flash';
+  } catch (_) {
+    return 'gemini-2.5-flash';
+  }
+}
+
+function setStoredModel(model) {
+  try {
+    localStorage.setItem('dsa_gemini_model', model);
+  } catch (_) {}
+}
+
+function getSelectedModel() {
+  const sel = aiModelSelect ? aiModelSelect.value : 'gemini-2.5-flash';
+  if (sel === 'custom') {
+    return (aiCustomModelInput?.value || '').trim() || 'gemini-2.5-flash';
+  }
+  return sel;
+}
+
+function updateApiKeyUi() {
+  const key = getStoredApiKey();
+  const hasKey = key && key.length > 5;
+  if (aiStatusDot && aiStatusText) {
+    aiStatusDot.className = hasKey ? 'status-dot status-dot-success' : 'status-dot status-dot-warning';
+    aiStatusText.textContent = hasKey ? 'Ready' : 'No Key';
+  }
+  if (aiKeyInputSection && aiKeySavedSection) {
+    aiKeyInputSection.style.display = hasKey ? 'none' : 'flex';
+    aiKeySavedSection.style.display = hasKey ? 'flex' : 'none';
+  }
+  if (aiApiKeyInput && !hasKey) {
+    aiApiKeyInput.value = '';
+  }
+}
+
+function compileLiveTreeContext() {
+  const tree = getActiveTree();
+  const def = STRUCTURE_DEFS[currentStructure] || {};
+  const stats = tree.getStats ? tree.getStats() : {};
+  const currentStep = (controller && controller.steps && controller.currentStepIndex >= 0) 
+    ? controller.steps[controller.currentStepIndex] 
+    : null;
+  const stepIdx = controller ? controller.currentStepIndex : -1;
+  const totalSteps = controller && controller.steps ? controller.steps.length : 0;
+
+  let structureSpecific = '';
+  if (['minheap', 'maxheap'].includes(currentStructure)) {
+    const arr = tree.heap || [];
+    structureSpecific = `Heap Array (1-based [1..N]): [${arr.join(', ')}]`;
+  } else if (currentStructure === 'deap') {
+    const arr = tree.deap || tree.arr || [];
+    structureSpecific = `Deap Array (starting index 2): [${arr.slice(2).join(', ')}]`;
+  } else if (['binomial', 'lazybinomial'].includes(currentStructure)) {
+    const roots = (tree.trees || []).map(t => `B_${t.degree ?? 0}(root=${t.key})`);
+    structureSpecific = `Binomial Forest Root List: [${roots.join(', ')}]`;
+  } else if (currentStructure === 'fibonacci') {
+    const roots = (tree.trees || []).map(t => `FibTree(deg=${t.degree ?? 0}, root=${t.key}, marked=${t.marked})`);
+    structureSpecific = `Fibonacci Heap Roots: [${roots.join(', ')}], Min Root: ${tree.minNode ? tree.minNode.key : 'None'}`;
+  } else if (currentStructure === 'leftist' || currentStructure === 'skew') {
+    structureSpecific = `Root Key: ${tree.root ? tree.root.key : 'Empty'}, Leftist/Skew s-value at root: ${tree.root?.sValue ?? 1}`;
+  } else if (currentStructure === 'trie') {
+    structureSpecific = `Words in Trie: ${stats.totalWords || 0}, Nodes: ${stats.totalNodes || 0}, Max Depth: ${stats.maxDepth || 0}`;
+  } else {
+    // Multi-way or BST
+    structureSpecific = `Order M: ${tree.M || 'N/A'}, Tree Height: ${stats.height ?? stats.levels ?? 0}`;
+  }
+
+  let stepInfo = 'Ready / Idle (No active animation step currently executing)';
+  if (currentStep) {
+    stepInfo = `Step ${stepIdx + 1} of ${totalSteps}:
+- Title: ${currentStep.title || 'N/A'}
+- Action Category: ${currentStep.actionCategory || 'general'}
+- What is happening: ${currentStep.action || currentStep.reason || 'N/A'}
+- Algorithmic Rule / Invariant: ${currentStep.rule || 'N/A'}
+- Beginner Tip / Analogy: ${currentStep.tip || 'N/A'}
+- Target / Highlighted Keys: ${currentStep.targetKeys ? currentStep.targetKeys.join(', ') : 'None'}`;
+  }
+
+  return `=== CURRENT REAL-TIME CANVAS CONTEXT ===
+- Active Data Structure: ${def.name} (${def.title})
+- Category / Topic: ${['minheap', 'maxheap', 'deap', 'leftist', 'skew', 'binomial', 'lazybinomial', 'fibonacci'].includes(currentStructure) ? 'Unit-2 Heaps' : 'Trees'}
+- Key Type: ${currentKeyType}
+- Total Keys: ${stats.totalKeys ?? stats.totalWords ?? 0}
+- Total Nodes: ${stats.totalNodes ?? stats.totalKeys ?? 0}
+- Current Height / Depth: ${stats.height ?? stats.levels ?? 0}
+- Structural Specifics: ${structureSpecific}
+- Active Step Snapshot:
+${stepInfo}
+========================================`;
+}
+
+// ponytail: lightweight safe markdown parser without external libraries
+function formatAiMarkdown(text) {
+  if (!text) return '';
+  let escaped = escapeHtml(text);
+
+  // Code blocks: ```lang\ncode\n```
+  escaped = escaped.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code.trim()}</code></pre>`);
+
+  // Inline code: `code`
+  escaped = escaped.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Bold: **text**
+  escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+  // Italics: *text*
+  escaped = escaped.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+  // Bullet points: lines starting with - or *
+  const lines = escaped.split('\n');
+  let inList = false;
+  let formatted = '';
+
+  for (let line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      if (!inList) {
+        formatted += '<ul>';
+        inList = true;
+      }
+      formatted += `<li>${trimmed.substring(2)}</li>`;
+    } else {
+      if (inList) {
+        formatted += '</ul>';
+        inList = false;
+      }
+      if (trimmed.length > 0) {
+        formatted += `<p>${trimmed}</p>`;
+      }
+    }
+  }
+  if (inList) formatted += '</ul>';
+
+  return formatted;
+}
+
+function appendUserMessage(text) {
+  if (!aiChatContainer) return;
+  const msgEl = document.createElement('div');
+  msgEl.className = 'ai-message ai-message-user';
+  msgEl.innerHTML = `
+    <div class="ai-avatar">👤</div>
+    <div class="ai-bubble">${formatAiMarkdown(text)}</div>
+  `;
+  aiChatContainer.appendChild(msgEl);
+  aiChatContainer.scrollTop = aiChatContainer.scrollHeight;
+}
+
+function appendBotMessage(text) {
+  if (!aiChatContainer) return;
+  const msgEl = document.createElement('div');
+  msgEl.className = 'ai-message ai-message-bot';
+  msgEl.innerHTML = `
+    <div class="ai-avatar">🤖</div>
+    <div class="ai-bubble">${formatAiMarkdown(text)}</div>
+  `;
+  aiChatContainer.appendChild(msgEl);
+  aiChatContainer.scrollTop = aiChatContainer.scrollHeight;
+}
+
+function appendTypingIndicator() {
+  if (!aiChatContainer) return null;
+  const msgEl = document.createElement('div');
+  msgEl.className = 'ai-message ai-message-bot ai-typing-msg';
+  msgEl.innerHTML = `
+    <div class="ai-avatar">🤖</div>
+    <div class="ai-bubble">
+      <div class="ai-typing-dots">
+        <span class="ai-typing-dot"></span>
+        <span class="ai-typing-dot"></span>
+        <span class="ai-typing-dot"></span>
+      </div>
+    </div>
+  `;
+  aiChatContainer.appendChild(msgEl);
+  aiChatContainer.scrollTop = aiChatContainer.scrollHeight;
+  return msgEl;
+}
+
+async function sendAiMessage(userText) {
+  const trimmed = userText.trim();
+  if (!trimmed) return;
+
+  const apiKey = getStoredApiKey();
+  if (!apiKey) {
+    appendUserMessage(trimmed);
+    appendBotMessage("⚠️ **Google Gemini API Key Required**\nPlease paste your Gemini API key in the configuration box above and click **Save Key**. Your key is stored solely in your local browser and is never sent to any external server other than Google's official API.");
+    return;
+  }
+
+  const model = getSelectedModel();
+  appendUserMessage(trimmed);
+  if (aiChatInput) aiChatInput.value = '';
+
+  const typingEl = appendTypingIndicator();
+
+  try {
+    const liveContext = compileLiveTreeContext();
+    const systemPrompt = `You are Antigravity's Data Structures & Algorithms Professor and Exam Tutor.
+You are helping an undergraduate student understand advanced trees and heaps (CLRS / Cormen, Sahni, Weiss) for university examinations.
+You have real-time live access to the student's canvas state and current animation step below.
+Explain concisely and directly. If the student asks about a rotation, balance repair, s-value swap, carry union, or cascading cut, reference the exact keys and nodes from the live context.
+
+${liveContext}`;
+
+    // Compile message contents including last 4 turns of conversation
+    const contents = [];
+    const recent = aiConversationHistory.slice(-4);
+    for (const m of recent) {
+      contents.push(m);
+    }
+    contents.push({
+      role: 'user',
+      parts: [{ text: trimmed }]
+    });
+
+    const requestBody = {
+      system_instruction: {
+        parts: [{ text: systemPrompt }]
+      },
+      contents: contents,
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 1200
+      }
+    };
+
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (typingEl) typingEl.remove();
+
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => ({}));
+      const errMsg = errJson.error?.message || `HTTP ${response.status} ${response.statusText}`;
+      if (response.status === 400 && errMsg.includes('API_KEY')) {
+        appendBotMessage("❌ **Invalid API Key**: Google rejected this API key. Please re-enter a valid key from [Google AI Studio](https://aistudio.google.com/app/apikey).");
+      } else if (response.status === 429) {
+        appendBotMessage("⏳ **Quota / Rate Limit**: Google Gemini API quota exceeded. Please wait a few seconds or choose another model from the dropdown above.");
+      } else {
+        appendBotMessage(`⚠️ **Gemini API Error (${response.status})**: ${errMsg}`);
+      }
+      return;
+    }
+
+    const data = await response.json();
+    const botText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I was unable to analyze this step.";
+
+    aiConversationHistory.push({ role: 'user', parts: [{ text: trimmed }] });
+    aiConversationHistory.push({ role: 'model', parts: [{ text: botText }] });
+
+    appendBotMessage(botText);
+  } catch (err) {
+    if (typingEl) typingEl.remove();
+    appendBotMessage(`❌ **Network Error**: Unable to reach Google Gemini API (${err.message || 'Check your internet connection'}).`);
+  }
+}
+
+function setupAiTutor() {
+  // 1. Initialize Saved API Key & Model
+  const savedModel = getStoredModel();
+  if (aiModelSelect) {
+    const optExists = Array.from(aiModelSelect.options).some(o => o.value === savedModel);
+    if (optExists) {
+      aiModelSelect.value = savedModel;
+    } else {
+      aiModelSelect.value = 'custom';
+      if (aiCustomModelInput) {
+        aiCustomModelInput.style.display = 'block';
+        aiCustomModelInput.value = savedModel;
+      }
+    }
+
+    aiModelSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'custom') {
+        if (aiCustomModelInput) aiCustomModelInput.style.display = 'block';
+      } else {
+        if (aiCustomModelInput) aiCustomModelInput.style.display = 'none';
+        setStoredModel(val);
+      }
+    });
+  }
+
+  if (aiCustomModelInput) {
+    aiCustomModelInput.addEventListener('input', (e) => {
+      setStoredModel(e.target.value.trim());
+    });
+  }
+
+  updateApiKeyUi();
+
+  // 2. Save Key Button
+  btnSaveApiKey?.addEventListener('click', () => {
+    const val = (aiApiKeyInput?.value || '').trim();
+    if (!val) {
+      showToast('Please paste a valid Gemini API key', 'warning');
+      return;
+    }
+    setStoredApiKey(val);
+    updateApiKeyUi();
+    showToast('Gemini API key saved in browser storage', 'success');
+  });
+
+  // 3. Toggle Visibility
+  btnToggleKeyVisibility?.addEventListener('click', () => {
+    if (aiApiKeyInput) {
+      aiApiKeyInput.type = aiApiKeyInput.type === 'password' ? 'text' : 'password';
+      btnToggleKeyVisibility.textContent = aiApiKeyInput.type === 'password' ? '👁️' : '🔒';
+    }
+  });
+
+  // 4. Change Key
+  btnChangeApiKey?.addEventListener('click', () => {
+    if (aiKeyInputSection && aiKeySavedSection) {
+      aiKeyInputSection.style.display = 'flex';
+      aiKeySavedSection.style.display = 'none';
+      if (aiApiKeyInput) {
+        aiApiKeyInput.value = getStoredApiKey();
+        aiApiKeyInput.focus();
+      }
+    }
+  });
+
+  // 5. Remove Key
+  btnClearApiKey?.addEventListener('click', () => {
+    removeStoredApiKey();
+    updateApiKeyUi();
+    showToast('API key removed', 'info');
+  });
+
+  // 6. Chat Submit
+  aiChatForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const q = aiChatInput ? aiChatInput.value : '';
+    sendAiMessage(q);
+  });
+
+  // 7. Clear Chat
+  btnAiClearChat?.addEventListener('click', () => {
+    aiConversationHistory = [];
+    if (aiChatContainer) {
+      aiChatContainer.innerHTML = `
+        <div class="ai-message ai-message-bot">
+          <div class="ai-avatar">🤖</div>
+          <div class="ai-bubble">
+            <p><strong>Chat cleared!</strong></p>
+            <p>I still have live access to your canvas and step state. Ask me anything about this tree!</p>
+          </div>
+        </div>
+      `;
+    }
+  });
+
+  // 8. Quick Chips
+  if (aiQuickChips) {
+    aiQuickChips.querySelectorAll('.ai-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const prompt = chip.dataset.prompt;
+        if (prompt) {
+          sendAiMessage(prompt);
+        }
+      });
+    });
+  }
+
+  // 9. Top Nav "Ask AI" Shortcut
+  btnNavAskAi?.addEventListener('click', () => {
+    // Switch to AI tab
+    const aiTabBtn = document.querySelector('.sidebar-tab-btn[data-pane="ai"]');
+    if (aiTabBtn) {
+      sidebarTabButtons.forEach(b => b.classList.remove('active'));
+      sidebarPanes.forEach(p => p.classList.remove('active'));
+      aiTabBtn.classList.add('active');
+      if (paneAi) paneAi.classList.add('active');
+    }
+    if (sidebar && !sidebar.classList.contains('open')) {
+      sidebar.classList.add('open');
+    }
+    if (aiChatInput) {
+      aiChatInput.focus();
+    }
+  });
+}
+
+// ==========================================================================
 // Setup Event Listeners
 // ==========================================================================
 function setupEventListeners() {
@@ -2519,6 +2959,9 @@ function setupEventListeners() {
   setupQuizMode();
   setupCompareMode();
   setupExamExport();
+
+  // 1d. AI Tutor Setup
+  setupAiTutor();
 
   // Mobile sidebar toggle
   if (btnToggleSidebar) {

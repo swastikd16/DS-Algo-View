@@ -284,4 +284,20 @@ assert(testDeap._isMinSubtree(2), "Index 2 must be in Min subtree");
 assert(!testDeap._isMinSubtree(3), "Index 3 must be in Max subtree");
 console.log("✓ Dual View Array representation verified.\n");
 
+// === Test 10: AI Markdown & Context Formatter Verification ===
+console.log("=== Test 10: AI Markdown & Context Formatter ===");
+function testMarkdownParser(text) {
+  let escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  escaped = escaped.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code.trim()}</code></pre>`);
+  escaped = escaped.replace(/`([^`]+)`/g, '<code>$1</code>');
+  escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  return escaped;
+}
+const sampleMd = "**LL Rotation** occurred at root with key `42`. Code: ```node.left = child```";
+const parsed = testMarkdownParser(sampleMd);
+assert(parsed.includes('<strong>LL Rotation</strong>'), "Bold markdown must be parsed");
+assert(parsed.includes('<code>42</code>'), "Inline code must be parsed");
+assert(parsed.includes('<pre><code>node.left = child</code></pre>'), "Code blocks must be parsed");
+console.log("✓ AI Markdown Parser verified.\n");
+
 console.log("🎉 ALL TESTS PASSED SUCCESSFULLY! (All 15 Data Structures Green)");

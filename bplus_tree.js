@@ -19,11 +19,23 @@ export function resetBPlusNodeIdCounter() {
 
 export class BPlusTreeNode {
   constructor(isLeaf = true, id = null) {
-    this.id = id || `bp_node_${nextBPlusNodeId++}`;
+    if (id) {
+      const match = String(id).match(/(\d+)$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num >= nextBPlusNodeId) {
+          nextBPlusNodeId = num + 1;
+        }
+      }
+      this.id = id;
+    } else {
+      this.id = `bp_node_${nextBPlusNodeId++}`;
+    }
     this.keys = [];
     this.children = [];
     this.isLeaf = isLeaf;
     this.next = null; // Pointer to next leaf node
+    this.nextId = null;
   }
 
   clone(visited = new Map()) {
@@ -32,14 +44,8 @@ export class BPlusTreeNode {
     visited.set(this, copy);
     copy.keys = [...this.keys];
     copy.children = this.children.map(ch => ch.clone(visited));
-    if (this.next) {
-      if (visited.has(this.next)) {
-        copy.next = visited.get(this.next);
-      } else {
-        // Will be linked or proxy
-        copy.nextId = this.next.id;
-      }
-    }
+    copy.next = null;
+    copy.nextId = this.next ? this.next.id : null;
     return copy;
   }
 }
@@ -56,10 +62,92 @@ export class BPlusTree {
     this.steps = [];
   }
 
+  getMinKey(node) {
+    if (!node) return null;
+    let curr = node;
+    while (!curr.isLeaf) {
+      if (!curr.children || curr.children.length === 0) return null;
+      let nextChild = curr.children[0];
+      if (nextChild.isLeaf && nextChild.keys.length === 0) {
+        for (const ch of curr.children) {
+          if (ch.keys.length > 0 || (!ch.isLeaf && ch.children.length > 0)) {
+            nextChild = ch;
+            break;
+          }
+        }
+      }
+      curr = nextChild;
+    }
+    return (curr.keys && curr.keys.length > 0) ? curr.keys[0] : null;
+  }
+
+  getFirstLeaf() {
+    if (!this.root) return null;
+    let curr = this.root;
+    while (!curr.isLeaf) {
+      if (!curr.children || curr.children.length === 0) return null;
+      curr = curr.children[0];
+    }
+    return curr;
+  }
+
+  getAllLeaves() {
+    const leaves = [];
+    const collect = (node) => {
+      if (!node) return;
+      if (node.isLeaf) {
+        leaves.push(node);
+      } else {
+        for (const ch of node.children) collect(ch);
+      }
+    };
+    collect(this.root);
+    return leaves;
+  }
+
+  relinkLeaves() {
+    const leaves = this.getAllLeaves();
+    for (let i = 0; i < leaves.length; i++) {
+      if (i < leaves.length - 1) {
+        leaves[i].next = leaves[i + 1];
+        leaves[i].nextId = leaves[i + 1].id;
+      } else {
+        leaves[i].next = null;
+        leaves[i].nextId = null;
+      }
+    }
+  }
+
+  updateSeparators(node = this.root) {
+    if (!node || node.isLeaf) return;
+    for (const child of node.children) {
+      this.updateSeparators(child);
+    }
+    for (let i = 0; i < node.keys.length; i++) {
+      if (i + 1 < node.children.length) {
+        const minVal = this.getMinKey(node.children[i + 1]);
+        if (minVal !== null && minVal !== undefined) {
+          node.keys[i] = minVal;
+        }
+      }
+    }
+  }
+
+  updateAncestorRouters(node, oldKey, newKey) {
+    if (!node || node.isLeaf) return;
+    for (let i = 0; i < node.keys.length; i++) {
+      if (node.keys[i] === oldKey && newKey !== null && newKey !== undefined) {
+        node.keys[i] = newKey;
+      }
+    }
+    for (const child of node.children) {
+      this.updateAncestorRouters(child, oldKey, newKey);
+    }
+  }
+
   cloneTree() {
     if (!this.root) return null;
     const cloned = this.root.clone();
-    // Resolve next leaf pointers across cloned nodes
     const leafList = [];
     const collectLeaves = (node) => {
       if (!node) return;
@@ -70,9 +158,14 @@ export class BPlusTree {
       }
     };
     collectLeaves(cloned);
-    for (let i = 0; i < leafList.length - 1; i++) {
-      leafList[i].next = leafList[i + 1];
-      leafList[i].nextId = leafList[i + 1].id;
+    for (let i = 0; i < leafList.length; i++) {
+      if (i < leafList.length - 1) {
+        leafList[i].next = leafList[i + 1];
+        leafList[i].nextId = leafList[i + 1].id;
+      } else {
+        leafList[i].next = null;
+        leafList[i].nextId = null;
+      }
     }
     return cloned;
   }
@@ -275,9 +368,12 @@ export class BPlusTree {
     const mid = Math.floor(leaf.keys.length / 2);
     const rightLeaf = new BPlusTreeNode(true);
     rightLeaf.keys = leaf.keys.splice(mid); // Right leaf gets second half
+    
     // Leaf chain update
     rightLeaf.next = leaf.next;
+    rightLeaf.nextId = rightLeaf.next ? rightLeaf.next.id : null;
     leaf.next = rightLeaf;
+    leaf.nextId = rightLeaf.id;
 
     // In B+ Tree, the first key of the right leaf is copied up to the parent as the routing key
     const promotedKey = rightLeaf.keys[0];
@@ -469,9 +565,6 @@ export class BPlusTree {
       actionCategory: 'delete'
     });
 
-    // If key was first key, update parent routing index if present
-    this.updateAncestorRouters(this.root, key, curr.keys[0] !== undefined ? curr.keys[0] : null);
-
     // If root is leaf
     if (curr === this.root) {
       this.recordStep({
@@ -487,10 +580,17 @@ export class BPlusTree {
       return this.steps;
     }
 
+    // If key was the smallest key in this leaf and leaf still has keys, update routers
+    if (keyIdx === 0 && curr.keys.length > 0) {
+      this.updateAncestorRouters(this.root, key, curr.keys[0]);
+      this.updateSeparators(this.root);
+    }
+
     // Check underflow in leaf
     if (curr.keys.length < this.minKeys) {
       this.rebalanceLeaf(curr, path);
     } else {
+      this.updateSeparators(this.root);
       this.recordStep({
         title: `Deletion Complete: Invariants Satisfied`,
         action: `Leaf [${curr.id}] has ${curr.keys.length} keys (>= minKeys ${this.minKeys}). No underflow.`,
@@ -506,16 +606,26 @@ export class BPlusTree {
     return this.steps;
   }
 
-  updateAncestorRouters(node, oldKey, newKey) {
-    if (!node || node.isLeaf) return;
-    for (let i = 0; i < node.keys.length; i++) {
-      if (node.keys[i] === oldKey && newKey !== null) {
-        node.keys[i] = newKey;
-      }
+  checkRootCollapse() {
+    let collapsed = false;
+    while (this.root && !this.root.isLeaf && this.root.keys.length === 0 && this.root.children.length > 0) {
+      this.root = this.root.children[0];
+      collapsed = true;
+      this.recordStep({
+        title: `Root Collapsed (Height - 1)`,
+        action: `Root internal node had 0 keys left. Its child becomes the new root. Tree height decreased by 1.`,
+        rule: `When the root has 0 keys left, its only remaining child becomes the new root.`,
+        tip: `Top floor was empty, so the floor below became the new entrance!`,
+        popupMessage: `Height decreased`,
+        highlightNodeIds: [this.root.id],
+        statusType: 'success',
+        actionCategory: 'merge'
+      });
     }
-    for (const child of node.children) {
-      this.updateAncestorRouters(child, oldKey, newKey);
+    if (this.root && !this.root.isLeaf && this.root.children.length === 0) {
+      this.root = new BPlusTreeNode(true);
     }
+    return collapsed;
   }
 
   rebalanceLeaf(leaf, path) {
@@ -529,6 +639,7 @@ export class BPlusTree {
       const borrowedKey = leftSib.keys.pop();
       leaf.keys.unshift(borrowedKey);
       parent.keys[leafIdx - 1] = leaf.keys[0]; // Update routing key
+      this.updateSeparators(this.root);
 
       this.recordStep({
         title: `Underflow Repaired: Borrowed from Left Sibling`,
@@ -548,6 +659,7 @@ export class BPlusTree {
       const borrowedKey = rightSib.keys.shift();
       leaf.keys.push(borrowedKey);
       parent.keys[leafIdx] = rightSib.keys[0]; // Update routing key
+      this.updateSeparators(this.root);
 
       this.recordStep({
         title: `Underflow Repaired: Borrowed from Right Sibling`,
@@ -569,6 +681,8 @@ export class BPlusTree {
       leftSib.next = leaf.next;
       parent.children.splice(leafIdx, 1);
       parent.keys.splice(leafIdx - 1, 1);
+      this.relinkLeaves();
+      this.updateSeparators(this.root);
 
       this.recordStep({
         title: `Leaf Merged with Left Sibling`,
@@ -586,6 +700,8 @@ export class BPlusTree {
       leaf.next = rightSib.next;
       parent.children.splice(leafIdx + 1, 1);
       parent.keys.splice(leafIdx, 1);
+      this.relinkLeaves();
+      this.updateSeparators(this.root);
 
       this.recordStep({
         title: `Leaf Merged with Right Sibling`,
@@ -599,21 +715,9 @@ export class BPlusTree {
       });
     }
 
-    // Check parent underflow
+    // Check parent underflow / root collapse
     if (parent === this.root) {
-      if (this.root.keys.length === 0 && this.root.children.length > 0) {
-        this.root = this.root.children[0];
-        this.recordStep({
-          title: `Root Collapsed (Height - 1)`,
-          action: `Root internal node had 0 keys left. Its child becomes the new root. Tree height decreased by 1.`,
-          rule: `When the root has 0 keys left, its only remaining child becomes the new root.`,
-          tip: `Top floor was empty, so the floor below became the new entrance!`,
-          popupMessage: `Height decreased`,
-          highlightNodeIds: [this.root.id],
-          statusType: 'success',
-          actionCategory: 'merge'
-        });
-      }
+      this.checkRootCollapse();
       return;
     }
 
@@ -624,7 +728,10 @@ export class BPlusTree {
   }
 
   rebalanceInternal(node, path) {
-    if (node === this.root) return;
+    if (node === this.root) {
+      this.checkRootCollapse();
+      return;
+    }
     const parent = path[path.length - 1];
     const nodeIdx = parent.children.indexOf(node);
     const leftSib = nodeIdx > 0 ? parent.children[nodeIdx - 1] : null;
@@ -639,6 +746,7 @@ export class BPlusTree {
       node.keys.unshift(parentKey);
       if (borrowedChild) node.children.unshift(borrowedChild);
       parent.keys[nodeIdx - 1] = borrowedKey;
+      this.updateSeparators(this.root);
 
       this.recordStep({
         title: `Internal Underflow: Borrowed from Left Sibling`,
@@ -662,6 +770,7 @@ export class BPlusTree {
       node.keys.push(parentKey);
       if (borrowedChild) node.children.push(borrowedChild);
       parent.keys[nodeIdx] = borrowedKey;
+      this.updateSeparators(this.root);
 
       this.recordStep({
         title: `Internal Underflow: Borrowed from Right Sibling`,
@@ -682,6 +791,7 @@ export class BPlusTree {
       leftSib.keys.push(parentKey, ...node.keys);
       leftSib.children.push(...node.children);
       parent.children.splice(nodeIdx, 1);
+      this.updateSeparators(this.root);
 
       this.recordStep({
         title: `Internal Nodes Merged`,
@@ -698,6 +808,7 @@ export class BPlusTree {
       node.keys.push(parentKey, ...rightSib.keys);
       node.children.push(...rightSib.children);
       parent.children.splice(nodeIdx + 1, 1);
+      this.updateSeparators(this.root);
 
       this.recordStep({
         title: `Internal Nodes Merged`,
@@ -712,9 +823,7 @@ export class BPlusTree {
     }
 
     if (parent === this.root) {
-      if (this.root.keys.length === 0 && this.root.children.length > 0) {
-        this.root = this.root.children[0];
-      }
+      this.checkRootCollapse();
       return;
     }
 
@@ -756,37 +865,200 @@ export class BPlusTree {
   }
 
   validateInvariants() {
-    const list = [
-      { name: "All actual data keys reside in leaf nodes", valid: true, detail: "Leaves store all keys" },
-      { name: "All leaf nodes reside at uniform depth", valid: true, detail: "Uniform height" },
-      { name: "Leaf nodes form an in-order sequential linked list", valid: true, detail: "Leaves chained via .next" },
-      { name: "Non-root nodes obey [minKeys .. maxKeys] capacity", valid: true, detail: `[${this.minKeys} .. ${this.maxKeys}] keys` }
-    ];
+    const list = [];
+    const addCheck = (name, valid, detail) => {
+      list.push({ name, valid, detail });
+    };
 
-    if (!this.root || (this.root.keys.length === 0 && this.root.children.length === 0)) {
+    if (!this.root || (this.root.isLeaf && this.root.keys.length === 0)) {
+      addCheck("All actual data keys reside in leaf nodes", true, "Empty tree: 0 keys");
+      addCheck("All leaf nodes reside at uniform depth", true, "Empty tree: depth 0");
+      addCheck("Leaf nodes form an in-order sequential linked list", true, "Empty tree: no leaf chain");
+      addCheck("Non-root nodes obey [minKeys .. maxKeys] capacity", true, "Empty tree satisfies bounds");
+      addCheck("Root node obeys occupancy rules", true, "Empty leaf root is valid");
+      addCheck("Keys strictly sorted within each node", true, "All node keys sorted");
+      addCheck("Internal nodes have exactly keys.length + 1 children", true, "No internal nodes");
+      addCheck("Separator keys equal right child subtree minimum", true, "No separators");
+      addCheck("Child subtrees respect parent key ranges", true, "No range violations");
+      addCheck("No duplicate keys exist in tree", true, "No duplicate keys");
+      addCheck("Leaf pointer integrity", true, "No cycles or broken pointers");
       return list;
     }
 
-    // Depth check
-    let leafDepth = -1;
+    // Traverse tree to collect nodes, leaves, depths
+    const allNodes = [];
+    const treeLeaves = [];
     let uniformDepth = true;
-    let nodeCapacityValid = true;
+    let leafDepth = -1;
+    let keysSorted = true;
+    let sortedErr = "";
+    let childCountValid = true;
+    let childCountErr = "";
+    let capacityValid = true;
+    let capacityErr = "";
+    let separatorValid = true;
+    let separatorErr = "";
+    let rangeValid = true;
+    let rangeErr = "";
+    let recordsOnlyInLeaves = true;
+    let recordsErr = "";
 
-    const check = (node, depth) => {
+    const traverse = (node, depth, minBound = null, maxBound = null) => {
       if (!node) return;
-      if (node !== this.root && (node.keys.length < this.minKeys || node.keys.length > this.maxKeys)) {
-        nodeCapacityValid = false;
+      allNodes.push(node);
+
+      // Check keys sorted
+      for (let i = 0; i < node.keys.length - 1; i++) {
+        if (compareKeys(node.keys[i], node.keys[i + 1]) >= 0) {
+          keysSorted = false;
+          sortedErr = `Node [${node.id}] keys not strictly sorted: [${node.keys.join(', ')}]`;
+        }
       }
+
+      // Check capacity
+      if (node !== this.root) {
+        if (node.isLeaf) {
+          if (node.keys.length < this.minKeys || node.keys.length > this.maxKeys) {
+            capacityValid = false;
+            capacityErr = `Leaf node [${node.id}] has ${node.keys.length} keys (allowed [${this.minKeys}..${this.maxKeys}])`;
+          }
+        } else {
+          if (node.keys.length < this.minKeys || node.keys.length > this.maxKeys) {
+            capacityValid = false;
+            capacityErr = `Internal node [${node.id}] has ${node.keys.length} keys (allowed [${this.minKeys}..${this.maxKeys}])`;
+          }
+          if (node.children.length < this.minChildren || node.children.length > this.maxChildren) {
+            capacityValid = false;
+            capacityErr = `Internal node [${node.id}] has ${node.children.length} children (allowed [${this.minChildren}..${this.maxChildren}])`;
+          }
+        }
+      }
+
+      // Check range bounds
+      for (const k of node.keys) {
+        if (minBound !== null && compareKeys(k, minBound) < 0) {
+          rangeValid = false;
+          rangeErr = `Key ${k} in node [${node.id}] is below subtree bound ${minBound}`;
+        }
+        if (maxBound !== null && compareKeys(k, maxBound) >= 0) {
+          if (node.isLeaf) {
+            rangeValid = false;
+            rangeErr = `Leaf key ${k} in node [${node.id}] violates upper bound ${maxBound}`;
+          }
+        }
+      }
+
       if (node.isLeaf) {
-        if (leafDepth === -1) leafDepth = depth;
-        else if (leafDepth !== depth) uniformDepth = false;
+        treeLeaves.push(node);
+        if (leafDepth === -1) {
+          leafDepth = depth;
+        } else if (leafDepth !== depth) {
+          uniformDepth = false;
+        }
+        if (node.children && node.children.length > 0) {
+          recordsOnlyInLeaves = false;
+          recordsErr = `Leaf node [${node.id}] unexpectedly has children`;
+        }
       } else {
-        for (const ch of node.children) check(ch, depth + 1);
+        // Internal node
+        if (node.children.length !== node.keys.length + 1) {
+          childCountValid = false;
+          childCountErr = `Internal node [${node.id}] has ${node.children.length} children for ${node.keys.length} keys (must be keys+1)`;
+        }
+
+        // Check separators
+        for (let i = 0; i < node.keys.length; i++) {
+          if (i + 1 < node.children.length) {
+            const expectedMin = this.getMinKey(node.children[i + 1]);
+            if (expectedMin !== null && compareKeys(node.keys[i], expectedMin) !== 0) {
+              separatorValid = false;
+              separatorErr = `Internal node [${node.id}] separator keys[${i}]=${node.keys[i]} does not match min of right child subtree (${expectedMin})`;
+            }
+          }
+        }
+
+        // Recurse children with bounds
+        for (let i = 0; i < node.children.length; i++) {
+          const childMin = i === 0 ? minBound : node.keys[i - 1];
+          const childMax = i < node.keys.length ? node.keys[i] : maxBound;
+          traverse(node.children[i], depth + 1, childMin, childMax);
+        }
       }
     };
-    check(this.root, 1);
-    list[1].valid = uniformDepth;
-    list[3].valid = nodeCapacityValid;
+
+    traverse(this.root, 1);
+
+    // Root occupancy check
+    let rootValid = true;
+    let rootErr = "";
+    if (this.root.isLeaf) {
+      if (this.root.keys.length > this.maxKeys) {
+        rootValid = false;
+        rootErr = `Leaf root [${this.root.id}] exceeds max keys ${this.maxKeys}`;
+      }
+    } else {
+      if (this.root.keys.length < 1 || this.root.keys.length > this.maxKeys) {
+        rootValid = false;
+        rootErr = `Internal root [${this.root.id}] has ${this.root.keys.length} keys (allowed [1..${this.maxKeys}])`;
+      }
+      if (this.root.children.length < 2 || this.root.children.length > this.maxChildren) {
+        rootValid = false;
+        rootErr = `Internal root [${this.root.id}] has ${this.root.children.length} children (allowed [2..${this.maxChildren}])`;
+      }
+    }
+
+    // Leaf linked list traversal
+    const chainedLeaves = [];
+    const visitedSet = new Set();
+    let currLeaf = this.getFirstLeaf();
+    let hasCycle = false;
+    let pointerErr = "";
+
+    while (currLeaf) {
+      if (visitedSet.has(currLeaf)) {
+        hasCycle = true;
+        pointerErr = `Cycle detected at leaf [${currLeaf.id}] in linked list`;
+        break;
+      }
+      visitedSet.add(currLeaf);
+      chainedLeaves.push(currLeaf);
+      currLeaf = currLeaf.next;
+    }
+
+    const linkedListAllOnce = !hasCycle && (chainedLeaves.length === treeLeaves.length) &&
+      chainedLeaves.every((l, idx) => l === treeLeaves[idx]);
+
+    // Check duplicate keys across leaves and sorted order
+    const allLeafKeys = [];
+    for (const lf of treeLeaves) {
+      allLeafKeys.push(...lf.keys);
+    }
+    const keySet = new Set();
+    let duplicateKey = null;
+    let leafKeysSorted = true;
+    for (let i = 0; i < allLeafKeys.length; i++) {
+      const k = allLeafKeys[i];
+      if (keySet.has(k)) {
+        duplicateKey = k;
+      }
+      keySet.add(k);
+      if (i > 0 && compareKeys(allLeafKeys[i - 1], k) >= 0) {
+        leafKeysSorted = false;
+      }
+    }
+
+    addCheck("All actual data keys reside in leaf nodes", recordsOnlyInLeaves, recordsOnlyInLeaves ? "Leaves store all keys" : recordsErr);
+    addCheck("All leaf nodes reside at uniform depth", uniformDepth, uniformDepth ? `All leaves at depth ${leafDepth}` : "Leaves at non-uniform depths");
+    addCheck("Leaf nodes form an in-order sequential linked list", linkedListAllOnce && leafKeysSorted, linkedListAllOnce && leafKeysSorted ? "Leaves chained sequentially in sorted order" : (pointerErr || "Linked list order does not match tree traversal"));
+    addCheck("Non-root nodes obey [minKeys .. maxKeys] capacity", capacityValid, capacityValid ? `Allowed [${this.minKeys} .. ${this.maxKeys}] keys` : capacityErr);
+    addCheck("Root node obeys occupancy rules", rootValid, rootValid ? "Root satisfies occupancy requirements" : rootErr);
+    addCheck("Keys strictly sorted within each node", keysSorted, keysSorted ? "All node keys sorted" : sortedErr);
+    addCheck("Internal nodes have exactly keys.length + 1 children", childCountValid, childCountValid ? "Child count matches keys + 1" : childCountErr);
+    addCheck("Separator keys equal right child subtree minimum", separatorValid, separatorValid ? "All separators match right subtree minimum" : separatorErr);
+    addCheck("Child subtrees respect parent key ranges", rangeValid, rangeValid ? "Subtree keys within router boundaries" : rangeErr);
+    addCheck("No duplicate keys exist in tree", duplicateKey === null, duplicateKey === null ? "All keys unique" : `Duplicate key found: ${duplicateKey}`);
+    addCheck("Leaf pointer integrity", !hasCycle, !hasCycle ? "Leaf pointers valid without cycles" : pointerErr);
+
     return list;
   }
 
@@ -818,18 +1090,7 @@ export class BPlusTree {
       return node;
     }
     tree.root = deserializeNode(data.root) || new BPlusTreeNode(true);
-    // Link leaves
-    const leaves = [];
-    const getLeaves = (n) => {
-      if (!n) return;
-      if (n.isLeaf) leaves.push(n);
-      else for (const ch of n.children) getLeaves(ch);
-    };
-    getLeaves(tree.root);
-    for (let i = 0; i < leaves.length - 1; i++) {
-      leaves[i].next = leaves[i + 1];
-      leaves[i].nextId = leaves[i + 1].id;
-    }
+    tree.relinkLeaves();
     return tree;
   }
 }

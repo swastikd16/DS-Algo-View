@@ -589,6 +589,31 @@ export class BPlusTree {
     // Check underflow in leaf
     if (curr.keys.length < this.minKeys) {
       this.rebalanceLeaf(curr, path);
+      this.relinkLeaves();
+      this.updateSeparators(this.root);
+      if (this.root && this.root.isLeaf && this.root.keys.length === 0) {
+        this.recordStep({
+          title: `Deletion Complete: Tree Empty`,
+          action: `Key ${key} removed. Tree is now completely empty.`,
+          rule: `An empty B+ Tree contains 0 keys and 0 child pointers.`,
+          tip: `All items removed from the shelves.`,
+          popupMessage: `Tree is empty`,
+          highlightNodeIds: [this.root.id],
+          statusType: 'success',
+          actionCategory: 'delete'
+        });
+      } else {
+        this.recordStep({
+          title: `Deletion Complete: Key ${key} Removed`,
+          action: `Key ${key} removed and underflow repairs completed. All nodes satisfy Order-${this.M} capacity and routing invariants.`,
+          rule: `B+ Tree structural invariants fully satisfied: uniform leaf depth, sequential leaf chain, and valid router keys.`,
+          tip: `Tree fully balanced and ready!`,
+          popupMessage: `Deletion complete!`,
+          highlightNodeIds: this.root ? [this.root.id] : [],
+          statusType: 'success',
+          actionCategory: 'delete'
+        });
+      }
     } else {
       this.updateSeparators(this.root);
       this.recordStep({

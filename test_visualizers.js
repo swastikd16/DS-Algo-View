@@ -300,4 +300,21 @@ assert(parsed.includes('<code>42</code>'), "Inline code must be parsed");
 assert(parsed.includes('<pre><code>node.left = child</code></pre>'), "Code blocks must be parsed");
 console.log("✓ AI Markdown Parser verified.\n");
 
+// === Test 11: Full Tree JSON Serialization for AI Context ===
+console.log("=== Test 11: Full Tree JSON Serialization for AI Context ===");
+const testBp = new BPlusTree(4);
+[10, 20, 30, 40, 50, 60].forEach(k => testBp.insert(k));
+const bpJson = testBp.toJSON();
+assert.strictEqual(bpJson.type, 'bplus', "B+ Tree JSON type must be bplus");
+assert.strictEqual(bpJson.M, 4, "Order M must be 4");
+assert(bpJson.root && Array.isArray(bpJson.root.children), "Root must have children array");
+assert(JSON.stringify(bpJson).includes('"keys"'), "JSON must contain key arrays");
+
+const testBinom = new BinomialHeap();
+[10, 20, 5, 40].forEach(k => testBinom.insert(k));
+const binomJson = testBinom.toJSON();
+assert(Array.isArray(binomJson.trees), "Binomial heap JSON must contain trees array");
+assert(JSON.stringify(binomJson).includes('"degree"'), "Binomial JSON must include tree degrees");
+console.log("✓ Full Tree JSON Context verified.\n");
+
 console.log("🎉 ALL TESTS PASSED SUCCESSFULLY! (All 15 Data Structures Green)");

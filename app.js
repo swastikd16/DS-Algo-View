@@ -2601,6 +2601,34 @@ function updateApiKeyUi() {
   }
 }
 
+function serializeNodeHierarchy(node) {
+  if (!node) return null;
+  const res = {
+    id: node.id
+  };
+  if (Array.isArray(node.keys) && node.keys.length > 0) {
+    res.keys = [...node.keys];
+  } else if (node.key !== null && node.key !== undefined) {
+    res.keys = [node.key];
+  } else {
+    res.keys = [];
+  }
+  if (node.isLeaf !== undefined) res.isLeaf = node.isLeaf;
+  if (node.height !== undefined) res.height = node.height;
+  if (node.color !== undefined) res.color = node.color;
+  if (node.sValue !== undefined) res.sValue = node.sValue;
+  if (node.degree !== undefined) res.degree = node.degree;
+  if (node.marked !== undefined) res.marked = node.marked;
+  if (node.heapSide) res.heapSide = node.heapSide;
+  if (node.isDeapRoot) res.isDeapRoot = true;
+
+  const children = node.children || [];
+  if (children.length > 0) {
+    res.children = children.map(serializeNodeHierarchy).filter(Boolean);
+  }
+  return res;
+}
+
 function compileLiveTreeContext() {
   const tree = getActiveTree();
   const def = STRUCTURE_DEFS[currentStructure] || {};
@@ -2611,50 +2639,72 @@ function compileLiveTreeContext() {
   const stepIdx = controller ? controller.currentStepIndex : -1;
   const totalSteps = controller && controller.steps ? controller.steps.length : 0;
 
-  let structureSpecific = '';
-  if (['minheap', 'maxheap'].includes(currentStructure)) {
-    const arr = tree.heap || [];
-    structureSpecific = `Heap Array (1-based [1..N]): [${arr.join(', ')}]`;
-  } else if (currentStructure === 'deap') {
-    const arr = tree.deap || tree.arr || [];
-    structureSpecific = `Deap Array (starting index 2): [${arr.slice(2).join(', ')}]`;
-  } else if (['binomial', 'lazybinomial'].includes(currentStructure)) {
-    const roots = (tree.trees || []).map(t => `B_${t.degree ?? 0}(root=${t.key})`);
-    structureSpecific = `Binomial Forest Root List: [${roots.join(', ')}]`;
-  } else if (currentStructure === 'fibonacci') {
-    const roots = (tree.trees || []).map(t => `FibTree(deg=${t.degree ?? 0}, root=${t.key}, marked=${t.marked})`);
-    structureSpecific = `Fibonacci Heap Roots: [${roots.join(', ')}], Min Root: ${tree.minNode ? tree.minNode.key : 'None'}`;
-  } else if (currentStructure === 'leftist' || currentStructure === 'skew') {
-    structureSpecific = `Root Key: ${tree.root ? tree.root.key : 'Empty'}, Leftist/Skew s-value at root: ${tree.root?.sValue ?? 1}`;
-  } else if (currentStructure === 'trie') {
-    structureSpecific = `Words in Trie: ${stats.totalWords || 0}, Nodes: ${stats.totalNodes || 0}, Max Depth: ${stats.maxDepth || 0}`;
-  } else {
-    // Multi-way or BST
-    structureSpecific = `Order M: ${tree.M || 'N/A'}, Tree Height: ${stats.height ?? stats.levels ?? 0}`;
-  }
+  // 1. Structure metadata & configuration
+  const structureMeta = {
+    name: def.name,
+    title: def.title,
+    category: ['minheap', 'maxheap', 'deap', 'leftist', 'skew', 'binomial', 'lazybinomial', 'fibonacci'].includes(currentStructure) ? 'Unit-2 Heaps' : 'Trees',
+    keyType: currentKeyType,
+    orderM: tree.M || null,
+    deletionStrategy: tree.deletionStrategy || null,
+    stats: {
+      totalKeys: stats.totalKeys ?? stats.totalWords ?? 0,
+      totalNodes: stats.totalNodes ?? stats.totalKeys ?? 0,
+      heightOrDepth: stats.height ?? stats.levels ?? 0
+    }
+  };
 
-  let stepInfo = 'Ready / Idle (No active animation step currently executing)';
+  // 2. Exact current step details
+  let stepDetails = null;
   if (currentStep) {
-    stepInfo = `Step ${stepIdx + 1} of ${totalSteps}:
-- Title: ${currentStep.title || 'N/A'}
-- Action Category: ${currentStep.actionCategory || 'general'}
-- What is happening: ${currentStep.action || currentStep.reason || 'N/A'}
-- Algorithmic Rule / Invariant: ${currentStep.rule || 'N/A'}
-- Beginner Tip / Analogy: ${currentStep.tip || 'N/A'}
-- Target / Highlighted Keys: ${currentStep.targetKeys ? currentStep.targetKeys.join(', ') : 'None'}`;
+    stepDetails = {
+      stepNumber: stepIdx + 1,
+      totalSteps: totalSteps,
+      title: currentStep.title || 'Step',
+      actionCategory: currentStep.actionCategory || 'general',
+      actionDescription: currentStep.action || currentStep.reason || '',
+      algorithmicRule: currentStep.rule || '',
+      explanationTip: currentStep.tip || '',
+      targetKeys: currentStep.targetKeys || [],
+      highlightNodeIds: currentStep.highlightNodeIds || []
+    };
   }
 
-  return `=== CURRENT REAL-TIME CANVAS CONTEXT ===
-- Active Data Structure: ${def.name} (${def.title})
-- Category / Topic: ${['minheap', 'maxheap', 'deap', 'leftist', 'skew', 'binomial', 'lazybinomial', 'fibonacci'].includes(currentStructure) ? 'Unit-2 Heaps' : 'Trees'}
-- Key Type: ${currentKeyType}
-- Total Keys: ${stats.totalKeys ?? stats.totalWords ?? 0}
-- Total Nodes: ${stats.totalNodes ?? stats.totalKeys ?? 0}
-- Current Height / Depth: ${stats.height ?? stats.levels ?? 0}
-- Structural Specifics: ${structureSpecific}
-- Active Step Snapshot:
-${stepInfo}
-========================================`;
+  // 3. Complete hierarchical tree JSON
+  let treeJson = null;
+  if (currentStep && currentStep.treeSnapshot) {
+    treeJson = serializeNodeHierarchy(currentStep.treeSnapshot);
+  } else if (tree && typeof tree.toJSON === 'function') {
+    treeJson = tree.toJSON();
+  }
+
+  // 4. Special array layouts for Heaps
+  let arrayRepresentation = null;
+  if (['minheap', 'maxheap'].includes(currentStructure)) {
+    arrayRepresentation = {
+      indexing: '1-based A[1..N]',
+      array: (tree.heap || []).map((val, idx) => ({ index: idx + 1, key: val, parentIndex: Math.floor((idx + 1) / 2) || null }))
+    };
+  } else if (currentStructure === 'deap') {
+    const deapArr = tree.deap || tree.arr || [];
+    arrayRepresentation = {
+      indexing: '1-based starting at index 2 (root at index 1 is empty)',
+      array: deapArr.slice(2).map((val, idx) => ({ index: idx + 2, key: val, side: (tree._isMinSubtree ? tree._isMinSubtree(idx + 2) : idx + 2 < 4) ? 'min-subtree' : 'max-subtree' }))
+    };
+  }
+
+  // 5. Invariants validation status
+  const invariants = tree.validateInvariants ? tree.validateInvariants() : [];
+
+  const fullPayload = {
+    dataStructure: structureMeta,
+    activeStep: stepDetails || "No animation currently active (Canvas is idle/ready)",
+    treeJson: treeJson,
+    ...(arrayRepresentation ? { heapArrayLayout: arrayRepresentation } : {}),
+    invariants: invariants
+  };
+
+  return JSON.stringify(fullPayload, null, 2);
 }
 
 // ponytail: lightweight safe markdown parser without external libraries
@@ -2763,13 +2813,21 @@ async function sendAiMessage(userText) {
   const typingEl = appendTypingIndicator();
 
   try {
-    const liveContext = compileLiveTreeContext();
+    const liveContextJson = compileLiveTreeContext();
     const systemPrompt = `You are Antigravity's Data Structures & Algorithms Professor and Exam Tutor.
-You are helping an undergraduate student understand advanced trees and heaps (CLRS / Cormen, Sahni, Weiss) for university examinations.
-You have real-time live access to the student's canvas state and current animation step below.
-Explain concisely and directly. If the student asks about a rotation, balance repair, s-value swap, carry union, or cascading cut, reference the exact keys and nodes from the live context.
+You are helping an undergraduate computer science student understand advanced trees and heaps (CLRS / Cormen, Sahni, Weiss) for university examinations.
 
-${liveContext}`;
+Below is the COMPLETE LIVE CONTEXT in JSON format, containing the full tree hierarchy (every root, key, child node, pointer, color/degree/s-value), invariant validations, and the exact step currently happening:
+
+\`\`\`json
+${liveContextJson}
+\`\`\`
+
+Instructions for your response:
+1. Treat the JSON data above as the exact ground truth for all keys, node IDs, parent-child relationships, and animation states.
+2. Directly answer the student's question clearly and concisely.
+3. Reference the exact keys, node IDs, and children from the JSON tree when explaining transformations (e.g. why a node split, why an AVL rotation occurred, how children were linked in a binomial tree, or why leftist heap swapped children).
+4. Provide exam-ready theoretical justification (time complexity, balance factor, invariant check) whenever relevant.`;
 
     // Compile message contents including last 4 turns of conversation
     const contents = [];

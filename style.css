@@ -2807,6 +2807,17 @@ body {
   gap: 8px;
 }
 
+.ai-model-desc {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  background: rgba(255, 255, 255, 0.75);
+  border-left: 2.5px solid var(--primary);
+  padding: 5px 8px;
+  border-radius: 0 6px 6px 0;
+  margin-top: 1px;
+}
+
 .ai-model-select-group {
   display: flex;
   align-items: center;

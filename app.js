@@ -218,6 +218,7 @@ const printableExamSheet = document.getElementById('printableExamSheet');
 const btnNavAskAi = document.getElementById('btnNavAskAi');
 const paneAi = document.getElementById('paneAi');
 const aiModelSelect = document.getElementById('aiModelSelect');
+const aiModelDesc = document.getElementById('aiModelDesc');
 const aiCustomModelInput = document.getElementById('aiCustomModelInput');
 const aiKeyStatusBadge = document.getElementById('aiKeyStatusBadge');
 const aiStatusDot = document.getElementById('aiStatusDot');
@@ -2525,6 +2526,15 @@ function generateExamStudySheet() {
 // ==========================================================================
 // AI Tutor Chatbot Integration (Google Gemini API with Real-Time Context)
 // ==========================================================================
+const MODEL_DESCRIPTIONS = {
+  'gemini-3.5-flash-lite': '<strong>Best overall balance (Recommended):</strong> Fast, low-latency responses with a much higher daily free quota than standard Flash. Great as your default model.',
+  'gemini-3.8-flash': '<strong>Best reasoning & accuracy:</strong> Ideal for complex edge cases like B+ tree underflow redistribution, AVL double rotations, or multi-step recurrence explanations.',
+  'gemini-3.1-flash-lite': '<strong>Ultra-fast & cheap fallback:</strong> Good for basic walkthroughs (e.g., standard BST insertion, BFS/DFS steps).',
+  'gemma-4-31b-it': '<strong>Open-weights alternative (31B):</strong> Completely free to use via AI Studio if you want an open-model option alongside Gemini.',
+  'gemma-4-26b-a4b-it': '<strong>Open-weights alternative (26B):</strong> Compact, efficient open-model option alongside Gemini.',
+  'custom': '<strong>Custom Model ID:</strong> Enter any valid model name from Google AI Studio / Gemini API.'
+};
+
 let aiConversationHistory = [];
 
 function getStoredApiKey() {
@@ -2549,9 +2559,9 @@ function removeStoredApiKey() {
 
 function getStoredModel() {
   try {
-    return localStorage.getItem('dsa_gemini_model') || 'gemini-2.5-flash';
+    return localStorage.getItem('dsa_gemini_model') || 'gemini-3.5-flash-lite';
   } catch (_) {
-    return 'gemini-2.5-flash';
+    return 'gemini-3.5-flash-lite';
   }
 }
 
@@ -2562,11 +2572,17 @@ function setStoredModel(model) {
 }
 
 function getSelectedModel() {
-  const sel = aiModelSelect ? aiModelSelect.value : 'gemini-2.5-flash';
+  const sel = aiModelSelect ? aiModelSelect.value : 'gemini-3.5-flash-lite';
   if (sel === 'custom') {
-    return (aiCustomModelInput?.value || '').trim() || 'gemini-2.5-flash';
+    return (aiCustomModelInput?.value || '').trim() || 'gemini-3.5-flash-lite';
   }
   return sel;
+}
+
+function updateModelDescription(modelKey) {
+  if (aiModelDesc) {
+    aiModelDesc.innerHTML = MODEL_DESCRIPTIONS[modelKey] || MODEL_DESCRIPTIONS['custom'];
+  }
 }
 
 function updateApiKeyUi() {
@@ -2828,8 +2844,11 @@ function setupAiTutor() {
       }
     }
 
+    updateModelDescription(aiModelSelect.value);
+
     aiModelSelect.addEventListener('change', (e) => {
       const val = e.target.value;
+      updateModelDescription(val);
       if (val === 'custom') {
         if (aiCustomModelInput) aiCustomModelInput.style.display = 'block';
       } else {
